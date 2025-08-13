@@ -1,2319 +1,1096 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Control de Caducidades</title>
-  <!-- React y ReactDOM -->
-  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <!-- Babel para JSX -->
-  <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
-  <!-- TailwindCSS -->
+  <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Font Awesome -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <!-- JSPDF para exportar a PDF -->
+  <!-- Font Awesome CDN -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+  <!-- React & ReactDOM -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <!-- Babel for JSX -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <!-- jsPDF -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
-  <style id="app-style">
+  <!-- QuaggaJS for barcode scanning -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
     body {
-      transition: background-color 0.3s, color 0.3s;
-      min-height: 100vh;
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-family: 'Inter', sans-serif;
     }
-    .dark {
-      background-color: #1a202c !important;
-      color: #fff !important;
+    .scrollbar-custom {
+      scrollbar-width: thin;
+      scrollbar-color: #cbd5e1 #f1f5f9;
     }
-    .dark .bg-gray-100 {
-      background-color: #2d3748 !important;
+    .scrollbar-custom::-webkit-scrollbar {
+      width: 6px;
     }
-    .dark .text-gray-700,
-    .dark .text-gray-600,
-    .dark .text-gray-900 {
-      color: #b3b3b3 !important;
+    .scrollbar-custom::-webkit-scrollbar-track {
+      background: #f1f5f9;
+      border-radius: 10px;
     }
-    .dark .text-gray-400,
-    .dark .text-gray-300,
-    .dark .text-gray-200 {
-      color: #e5e7eb !important;
+    .scrollbar-custom::-webkit-scrollbar-thumb {
+      background-color: #cbd5e1;
+      border-radius: 10px;
     }
-    .dark .text-gray-800,
-    .dark .placeholder-gray-500 {
-      color: #b3b3b3 !important;
-    }
-    .card {
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      will-change: transform, box-shadow;
-    }
-    .card:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-    }
-    .status-fresh {
-      background-color: #d1fae5; /* bg-green-100 */
-      border-left: 4px solid #22c55e; /* border-green-500 */
-    }
-    .dark .status-fresh {
-      background-color: #065f46 !important; /* dark:bg-green-900 */
-    }
-    .status-warning {
-      background-color: #fef9c3; /* bg-yellow-100 */
-      border-left: 4px solid #eab308; /* border-yellow-500 */
-    }
-    .dark .status-warning {
-      background-color: #78350f !important; /* dark:bg-yellow-900 */
-    }
-    .status-expired {
-      background-color: #fecaca; /* bg-red-100 */
-      border-left: 4px solid #ef4444; /* border-red-500 */
-    }
-    .dark .status-expired {
-      background-color: #7f1d1d !important; /* dark:bg-red-900 */
-    }
-    .status-approaching {
-      background-color: #f0f9ff; /* bg-blue-50 */
-      border-left: 4px solid #3b82f6; /* border-blue-500 */
-    }
-    .dark .status-approaching {
-      background-color: #1e40af !important; /* dark:bg-blue-900 */
-    }
-    .floating-button {
-      position: fixed;
-      bottom: 1.5rem;
-      right: 1.5rem;
-      width: 4rem;
-      height: 4rem;
-      background-color: #2563eb; /* bg-blue-600 */
-      color: #fff;
-      border-radius: 9999px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-      transition: all 0.2s ease;
-      z-index: 10;
-      backdrop-filter: blur(10px);
-    }
-    .floating-button:hover {
-      background-color: #1d4ed8; /* hover:bg-blue-700 */
-      transform: scale(1.1);
-      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-    }
-    .modal {
-      transition: all 0.3s ease;
-    }
-    /* Animaciones mejoradas */
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    .fade-in {
-      animation: fadeIn 0.3s ease-out;
-    }
-    @keyframes slideIn {
-      from { transform: translateY(20px); opacity: 0; }
-      to { transform: translateY(0); opacity: 1; }
-    }
-    .slide-in {
+    .toast {
       animation: slideIn 0.3s ease-out;
     }
-    /* Estilos para el toggle del modo oscuro */
-    .toggle-checkbox:checked {
-      right: 0;
-      border-color: #68D391;
-      transform: translateX(20px);
+    @keyframes slideIn {
+      from { transform: translateY(-100%); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
     }
-    .toggle-checkbox:checked + .toggle-label {
-      background-color: #68D391;
-    }
-    .toggle-label {
-      transition: all 0.2s ease;
-    }
-    .category-slider {
-      scrollbar-width: thin;
-      -ms-overflow-style: none;
-      max-height: 200px;
-      overflow-y: auto;
-    }
-    .category-slider::-webkit-scrollbar {
-      display: none;
-    }
-    .category-button {
-      transition: all 0.2s ease;
-      display: block;
-      width: 100%;
-      margin-bottom: 4px;
-      text-align: left;
-    }
-    .settings-categories-list {
-      max-height: 300px;
-      overflow-y: auto;
-      padding-right: 8px;
-    }
-    .scrollbar-hide {
-      -ms-overflow-style: none;
-      scrollbar-width: none;
-    }
-    .scrollbar-hide::-webkit-scrollbar {
-      display: none;
-    }
-    /* Nuevos estilos para mejor UX */
-    .input-group {
-      position: relative;
-    }
-    .input-group .icon {
-      position: absolute;
-      left: 12px;
-      top: 50%;
-      transform: translateY(-50%);
-      color: #9ca3af;
-    }
-    .btn {
-      transition: all 0.2s ease;
-      font-weight: 500;
-    }
-    .btn:hover {
-      transform: translateY(-1px);
-    }
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      padding: 0.25rem 0.6rem;
-      border-radius: 9999px;
-      font-size: 0.75rem;
-      font-weight: 500;
-    }
-    .product-image {
-      border-radius: 0.5rem;
-      object-fit: cover;
-      transition: transform 0.2s ease;
-    }
-    .product-image:hover {
-      transform: scale(1.05);
-    }
-    /* Estilo de tabla mejorado */
-    .table-container {
-      border-radius: 0.5rem;
-      overflow: hidden;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    }
-    .table-header {
-      background: linear-gradient(to right, #f3f4f6, #e5e7eb);
-      font-weight: 600;
-    }
-    .dark .table-header {
-      background: linear-gradient(to right, #4b5563, #374151);
-    }
-    /* Animación de carga */
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.5; }
-    }
-    .pulse {
-      animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-    }
-    /* Tooltip */
-    .tooltip {
-      position: relative;
-      display: inline-block;
-    }
-    .tooltip .tooltip-text {
-      visibility: hidden;
-      width: 120px;
-      background-color: #374151;
-      color: #fff;
-      text-align: center;
-      border-radius: 6px;
-      padding: 5px;
-      position: absolute;
-      z-index: 1;
-      bottom: 125%;
-      left: 50%;
-      margin-left: -60px;
+    .fade-enter {
       opacity: 0;
-      transition: opacity 0.3s;
-      font-size: 14px;
+      transform: translateY(-10px);
     }
-    .tooltip:hover .tooltip-text {
-      visibility: visible;
+    .fade-enter-active {
       opacity: 1;
-    }
-    /* Alertas de notificación */
-    .notification {
-      position: fixed;
-      top: 1rem;
-      right: 1rem;
-      padding: 1rem;
-      border-radius: 0.5rem;
-      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-      z-index: 1000;
-      transform: translateX(100%);
-      animation: slideInNotification 0.3s ease-out forwards;
-    }
-    @keyframes slideInNotification {
-      from { transform: translateX(100%); opacity: 0; }
-      to { transform: translateX(0); opacity: 1; }
-    }
-    /* Estilo de estadísticas */
-    .stat-card {
+      transform: translateY(0);
       transition: all 0.3s ease;
     }
-    .stat-card:hover {
-      transform: translateY(-2px);
+    .fade-exit {
+      opacity: 1;
     }
-    /* Responsive mejorado */
-    @media (max-width: 640px) {
-      .floating-button {
-        width: 3.5rem;
-        height: 3.5rem;
-        bottom: 1rem;
-        right: 1rem;
-      }
-      .product-details {
-        flex-direction: column;
-      }
-      .product-image {
-        margin-bottom: 1rem;
-      }
+    .fade-exit-active {
+      opacity: 0;
+      transform: translateY(-10px);
+      transition: all 0.3s ease;
     }
   </style>
-  <script type="text/javascript">
-    const stageConfig = {
-      "10A_TRACTO ALIMENTARIO Y METABOLISMO": { etapa1: 90, etapa2: 60, etapa3: 30 },
-      "10B_SANGRE Y APARATO HEMATOPOYETICO": { etapa1: 90, etapa2: 60, etapa3: 30 },
-      "10C_SISTEMA CARDIOVASCULAR": { etapa1: 90, etapa2: 60, etapa3: 30 },
-      "10D_DERMATOLOGICOS": { etapa1: 90, etapa2: 60, etapa3: 30 },
-      "10E_ESPECIALIZADOS": { etapa1: 90, etapa2: 60, etapa3: 30 },
-      "10G_SIST_GENITOURINARIO_Y_HORMONAS_SEX": { etapa1: 90, etapa2: 60, etapa3: 30 },
-      "10H_PREP_HORM_SIST_(EXCLUY_HORMONAS_SEX)": { etapa1: 90, etapa2: 60, etapa3: 30 },
-      "10J_ANTIINFECCIOSOS_SISTEMICOS_GENERALES": { etapa1: 90, etapa2: 60, etapa3: 30 },
-      "10K_SOLUCIONES_HOSPITALARIAS": { etapa1: 90, etapa2: 60, etapa3: 30 },
-      "10L_ANTINEOPLASICOS_Y_AGTS_INMUNOMODUL": { etapa1: 90, etapa2: 60, etapa3: 30 },
-      "10M_SISTEMA_MUSCULO_ESQUELETICO": { etapa1: 90, etapa2: 60, etapa3: 30 },
-      "10N_SISTEMA_NERVIOSO_CENTRAL": { etapa1: 90, etapa2: 60, etapa3: 30 },
-      "10P_PARASITOLOGIA": { etapa1: 90, etapa2: 60, etapa3: 30 },
-      "10R_SISTEMA_RESPIRATORIO": { etapa1: 90, etapa2: 60, etapa3: 30 },
-      "10S_ORGANOS_DE_LOS_SENTIDOS": { etapa1: 90, etapa2: 60, etapa3: 30 },
-      "10T_AGENTES_DE_DIAGNOSTICO": { etapa1: 90, etapa2: 60, etapa3: 30 },
-      "10V_VARIOS": { etapa1: 90, etapa2: 60, etapa3: 30 },
-      "10W_PRODUCTOS_NATURALES": { etapa1: 90, etapa2: 60, etapa3: 30 },
-      "10Y_REFREGERADOS": { etapa1: 90, etapa2: 60, etapa3: 30 },
-      "10Z_CONTROLADOS": { etapa1: 90, etapa2: 60, etapa3: 30 },
-      "11A_RESPIRATORIOS_OTC": { etapa1: 90, etapa2: 60, etapa3: 30 },
-      "11B_ANALGESICOS_OTC": { etapa1: 90, etapa2: 60, etapa3: 30 },
-      "11C_GASTROINTEST_OTC_(TRACTO_ALIMENT)": { etapa1: 90, etapa2: 60, etapa3: 30 },
-      "11D_SUEROS_ORALES_(SUSTIT_ELECTROL_ORAL)": { etapa1: 90, etapa2: 60, etapa3: 30 },
-      "11E_GINECOLOGICOS_OTC_Y_PROD_SEX": { etapa1: 90, etapa2: 60, etapa3: 30 },
-      "11F_DERMATOLOGICOS_OTC": { etapa1: 90, etapa2: 60, etapa3: 30 },
-      "11G_OFTALMOLOGICOS_Y_OTICOS_OTC": { etapa1: 90, etapa2: 60, etapa3: 30 },
-      "11H_VITAMINAS_Y_MINERALES_OTC": { etapa1: 90, etapa2: 60, etapa3: 30 },
-      "11I_NUTRICIONALES_OTC": { etapa1: 90, etapa2: 60, etapa3: 30 },
-      "11K_MATERIAL_Y_ACCESORIOS_PARA_CURACION": { etapa1: 90, etapa2: 60, etapa3: 30 },
-      "11M_ORTOPEDICOS_ACC_TERAP_Y_ME": { etapa1: 90, etapa2: 60, etapa3: 30 },
-      "11N_PRUEBAS_Y_TEST_DE_DIAGNOSTICO": { etapa1: 90, etapa2: 60, etapa3: 30 },
-      "11P_CUIDADO_DE_LOS_PIES": { etapa1: 90, etapa2: 60, etapa3: 30 },
-      "11R_PRODUCTOS_NATURALES": { etapa1: 90, etapa2: 60, etapa3: 30 },
-      "11S_PRODUCTOS_HOMEOPATICOS": { etapa1: 90, etapa2: 60, etapa3: 30 },
-      "11T_OTC_VARIOS": { etapa1: 90, etapa2: 60, etapa3: 30 },
-      "ABARROTES_GOURMET": { etapa1: 40, etapa2: 29, etapa3: 14 },
-      "ACEITES_COMESTIBLES": { etapa1: 90, etapa2: 60, etapa3: 30 },
-      "ADEREZOS": { etapa1: 40, etapa2: 29, etapa3: 14 },
-      "AGUA_Y_HIELO": { etapa1: 90, etapa2: 60, etapa3: 30 },
-      "ALIMENTOS_REFRIGERADOS": { etapa1: 10, etapa2: 5, etapa3: 2 },
-      "AZUCAR_Y_SUSTITUTOS": { etapa1: 90, etapa2: 60, etapa3: 30 },
-      "BARRAS_DE_CEREAL": { etapa1: 40, etapa2: 29, etapa3: 14 },
-      "BEBES_ALIMENTOS": { etapa1: 30, etapa2: 20, etapa3: 10 },
-      "BEBES_ALIMENTOS.": { etapa1: 30, etapa2: 20, etapa3: 10 },
-      "BEBIDAS": { etapa1: 90, etapa2: 60, etapa3: 30 },
-      "BOTANAS": { etapa1: 30, etapa2: 20, etapa3: 10 },
-      "CAFES": { etapa1: 90, etapa2: 60, etapa3: 30 },
-      "CEREALES": { etapa1: 40, etapa2: 29, etapa3: 14 },
-      "Cereales_Galletas_Y_Panes": { etapa1: 40, etapa2: 29, etapa3: 14 },
-      "CERVEZA": { etapa1: 40, etapa2: 29, etapa3: 14 },
-      "CHILES_ENVASADOS": { etapa1: 40, etapa2: 29, etapa3: 14 },
-      "CHOCOLATES.": { etapa1: 45, etapa2: 30, etapa3: 15 },
-      "CHORIZOS_Y_LONGANIZAS": { etapa1: 30, etapa2: 20, etapa3: 10 },
-      "COMIDAS_CONGELADAS": { etapa1: 30, etapa2: 14, etapa3: 5 },
-      "COMIDAS_ENVASADAS_Y_ENTREMESES": { etapa1: 40, etapa2: 29, etapa3: 14 },
-      "CONCENTRADOS_PARA_BEBIDAS": { etapa1: 90, etapa2: 60, etapa3: 30 },
-      "CONSOMES_Y_CALDOS": { etapa1: 40, etapa2: 29, etapa3: 14 },
-      "CREMAS_Y_JOCOQUES": { etapa1: 10, etapa2: 5, etapa3: 2 },
-      "CREMAS,_SOPAS,_PASTAS_Y_PURES": { etapa1: 90, etapa2: 60, etapa3: 30 },
-      "DELI_GOURMET": { etapa1: 15, etapa2: 9, etapa3: 5 },
-      "DESPENSAS.": { etapa1: 90, etapa2: 60, etapa3: 30 },
-      "DULCERIA": { etapa1: 45, etapa2: 30, etapa3: 15 },
-      "DULCERIA.": { etapa1: 45, etapa2: 30, etapa3: 15 },
-      "ESPECIAS_Y_CONDIMENTOS": { etapa1: 40, etapa2: 29, etapa3: 14 },
-      "FRIJOLES_Y_PLATILLOS_MEXICANOS_ENVASADOS": { etapa1: 40, etapa2: 29, etapa3: 14 },
-      "GALLETAS": { etapa1: 40, etapa2: 29, etapa3: 14 },
-      "GELATINAS_Y_POSTRES": { etapa1: 10, etapa2: 5, etapa3: 2 },
-      "GRANOS_Y_SEMILLAS": { etapa1: 90, etapa2: 60, etapa3: 30 },
-      "HARINAS_Y_COMPLEMENTOS": { etapa1: 90, etapa2: 60, etapa3: 30 },
-      "HELADOS_Y_POSTRES": { etapa1: 30, etapa2: 14, etapa3: 5 },
-      "JAMONES": { etapa1: 30, etapa2: 20, etapa3: 10 },
-      "JUGOS_Y_NECTARES": { etapa1: 90, etapa2: 60, etapa3: 30 },
-      "LECHES": { etapa1: 90, etapa2: 60, etapa3: 30 },
-      "LECHES_ULTRAPASTEURIZADAS": { etapa1: 30, etapa2: 14, etapa3: 5 },
-      "LECHES_Y_BEBIDAS_REFREGERADAS": { etapa1: 6, etapa2: 3, etapa3: 1 },
-      "MANTEQUILLAS_Y_MARGARINAS": { etapa1: 30, etapa2: 20, etapa3: 10 },
-      "MASCOTAS": { etapa1: 90, etapa2: 60, etapa3: 30 },
-      "MASCOTAS.": { etapa1: 90, etapa2: 60, etapa3: 30 },
-      "MEDICAMENTOS_OTC": { etapa1: 90, etapa2: 60, etapa3: 30 },
-      "MEDICINA_ETICA": { etapa1: 90, etapa2: 60, etapa3: 30 },
-      "MERMELADAS,_JALEAS,_MIELES_Y_CAJETAS": { etapa1: 40, etapa2: 29, etapa3: 14 },
-      "MOLES_Y_ADOBOS": { etapa1: 40, etapa2: 29, etapa3: 14 },
-      "PESCADOS_ENVASADOS": { etapa1: 40, etapa2: 29, etapa3: 14 },
-      "PESCADOS_Y_MARISCOS": { etapa1: 40, etapa2: 29, etapa3: 14 },
-      "PINA_REBANADAS": { etapa1: 40, etapa2: 29, etapa3: 14 },
-      "PLAN_DE_FIDELIDAD_MG": { etapa1: 30, etapa2: 20, etapa3: 10 },
-      "POSTRES": { etapa1: 40, etapa2: 29, etapa3: 14 },
-      "QUESOS": { etapa1: 15, etapa2: 10, etapa3: 2 },
-      "REFRESCOS": { etapa1: 30, etapa2: 20, etapa3: 10 },
-      "SABORIZANTES_PARA_LECHE_Y_CAFE": { etapa1: 90, etapa2: 60, etapa3: 30 },
-      "SALCHICHAS": { etapa1: 20, etapa2: 15, etapa3: 10 },
-      "SALSAS_ENVASADAS": { etapa1: 40, etapa2: 29, etapa3: 14 },
-      "SIN_CATEGORIA_FARM": { etapa1: 90, etapa2: 60, etapa3: 30 },
-      "SIN_CATEGORIA_(PRO_ESP)": { etapa1: 30, etapa2: 20, etapa3: 10 },
-      "TARJETAS_Y_SORTEOS_DE_AYUDA": { etapa1: 30, etapa2: 20, etapa3: 10 },
-      "TES_DE_INFUSION": { etapa1: 40, etapa2: 29, etapa3: 14 },
-      "TOCINOS": { etapa1: 30, etapa2: 20, etapa3: 10 },
-      "TORTILLAS_Y_TOSTADAS_EMPACADAS": { etapa1: 30, etapa2: 20, etapa3: 10 },
-      "VERDURAS_Y_VEGETALES_ENVASADOS": { etapa1: 40, etapa2: 29, etapa3: 14 },
-      "YOGHURT": { etapa1: 20, etapa2: 15, etapa3: 10 }
-    };
-
-    // Función para limpiar y normalizar nombres de categorías
-    function cleanCategoryName(category) {
-      return category.replace(/^\d+\s*/, '').replace(/[^a-zA-Z0-9]/g, '_');
-    }
-
-    // Función para obtener la etapa basada en días restantes
-    function getProductStage(product) {
-      const catName = cleanCategoryName(product.category);
-      const config = stageConfig[catName] || { etapa1: 90, etapa2: 60, etapa3: 30 };
-      const today = new Date();
-      const expDate = new Date(product.expirationDate);
-      const days = Math.ceil((expDate - today) / (1000 * 60 * 60 * 24));
-      
-      if (days <= 0) return "MERMA";
-      
-      // Verificar si la categoría tiene configuración de etapas
-      if (stageConfig[catName]) {
-        if (days <= config.etapa3) return "ETAPA 3";
-        if (days <= config.etapa2) return "ETAPA 2";
-        if (days <= config.etapa1) return "ETAPA 1";
-      }
-      
-      // Si no tiene configuración de etapas, marcar como "PRÓXIMO A MERMA"
-      return "PRÓXIMO A MERMA";
-    }
-
-    // Función para obtener el estado del producto
-    function getProductStatus(product) {
-      const today = new Date();
-      const expDate = new Date(product.expirationDate);
-      const days = Math.ceil((expDate - today) / (1000 * 60 * 60 * 24));
-      
-      if (days <= 0) return "expired";
-      
-      const catName = cleanCategoryName(product.category);
-      const config = stageConfig[catName] || { etapa1: 90, etapa2: 60, etapa3: 30 };
-      
-      // Si la categoría tiene configuración de etapas
-      if (stageConfig[catName]) {
-        if (days <= config.etapa3) return "warning";
-        if (days <= config.etapa2) return "warning";
-        if (days <= config.etapa1) return "warning";
-      } else {
-        // Si no tiene configuración de etapas, usar alerta de 3 días
-        if (days <= 3) return "warning";
-      }
-      
-      return "fresh";
-    }
-  </script>
-  <script>
-    // Configuración de TailwindCSS
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            'primary': '#2563eb', // bg-blue-600
-            'secondary': '#1d4ed8', // hover:bg-blue-700
-            'success': '#22c55e', // bg-green-500
-            'warning': '#eab308', // bg-yellow-500
-            'danger': '#ef4444', // bg-red-500
-          },
-          animation: {
-            'slide-in-notification': 'slideInNotification 0.3s ease-out forwards'
-          }
-        }
-      }
-    };
-  </script>
 </head>
-<body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
+<body class="bg-gray-50 text-gray-800 dark:bg-gray-900 dark:text-gray-100 transition-colors duration-300">
   <div id="root"></div>
-  <canvas id="barcode-canvas" style="display: none;"></canvas>
-  <div id="notification-container"></div>
-  <script type="text/babel" id="app-script">
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef, useMemo } = React;
+
+    // Database helper
+    const useIndexedDB = () => {
+      const DB_NAME = 'ExpiryControlDB';
+      const DB_VERSION = 1;
+      const STORE_NAME = 'products';
+      const CONFIG_STORE = 'config';
+
+      const openDB = () => {
+        return new Promise((resolve, reject) => {
+          const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+          request.onerror = () => reject(request.error);
+          request.onsuccess = () => resolve(request.result);
+
+          request.onupgradeneeded = (event) => {
+            const db = event.target.result;
+            
+            // Create products store if it doesn't exist
+            if (!db.objectStoreNames.contains(STORE_NAME)) {
+              const productStore = db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+              productStore.createIndex('name', 'name', { unique: false });
+              productStore.createIndex('category', 'category', { unique: false });
+              productStore.createIndex('expiryDate', 'expiryDate', { unique: false });
+            }
+            
+            // Create config store if it doesn't exist
+            if (!db.objectStoreNames.contains(CONFIG_STORE)) {
+              db.createObjectStore(CONFIG_STORE, { keyPath: 'key' });
+            }
+          };
+        });
+      };
+
+      const getProducts = async () => {
+        const db = await openDB();
+        return new Promise((resolve, reject) => {
+          const transaction = db.transaction([STORE_NAME], 'readonly');
+          const store = transaction.objectStore(STORE_NAME);
+          const request = store.getAll();
+
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+        });
+      };
+
+      const saveProducts = async (products) => {
+        const db = await openDB();
+        return new Promise((resolve, reject) => {
+          const transaction = db.transaction([STORE_NAME], 'readwrite');
+          const store = transaction.objectStore(STORE_NAME);
+          
+          // Clear existing data
+          store.clear();
+          
+          // Add new data
+          if (Array.isArray(products) && products.length > 0) {
+            products.forEach(product => store.add(product));
+          }
+
+          transaction.oncomplete = () => resolve();
+          transaction.onerror = () => reject(transaction.error);
+        });
+      };
+
+      const getConfig = async (key) => {
+        const db = await openDB();
+        return new Promise((resolve, reject) => {
+          const transaction = db.transaction([CONFIG_STORE], 'readonly');
+          const store = transaction.objectStore(CONFIG_STORE);
+          const request = store.get(key);
+
+          request.onsuccess = () => resolve(request.result ? request.result.value : null);
+          request.onerror = () => reject(request.error);
+        });
+      };
+
+      const saveConfig = async (key, value) => {
+        const db = await openDB();
+        return new Promise((resolve, reject) => {
+          const transaction = db.transaction([CONFIG_STORE], 'readwrite');
+          const store = transaction.objectStore(CONFIG_STORE);
+          
+          // Check if key exists
+          const getRequest = store.get(key);
+          
+          getRequest.onsuccess = () => {
+            if (getRequest.result) {
+              // Update existing
+              store.put({ key, value });
+            } else {
+              // Add new
+              store.add({ key, value });
+            }
+          };
+
+          transaction.oncomplete = () => resolve();
+          transaction.onerror = () => reject(transaction.error);
+        });
+      };
+
+      return { getProducts, saveProducts, getConfig, saveConfig };
+    };
+
     // Componente principal
     const App = () => {
-      const [darkMode, setDarkMode] = React.useState(() => {
-        const saved = localStorage.getItem('darkMode');
-        return saved ? JSON.parse(saved) : true;
-      });
-      const [products, setProducts] = React.useState(() => {
-        const saved = localStorage.getItem('products');
-        return saved ? JSON.parse(saved) : [];
-      });
-      const [categories, setCategories] = React.useState([
-        "11054 CIGARROS",
-        "11076 10A_TRACTO ALIMENTARIO Y METABOLISMO ",
-        "11076 10A_TRACTO ALIMENTARIO Y METABOLISMO (GESTOR)",
-        "11077 10B_SANGRE Y APARATO HEMATOPOYETICO ",
-        "11077 10B_SANGRE Y APARATO HEMATOPOYETICO (GESTOR)",
-        "11078 10C_SISTEMA CARDIOVASCULAR ",
-        "11078 10C_SISTEMA CARDIOVASCULAR (GESTOR)",
-        "11079 10D_DERMATOLOGICOS ",
-        "11079 10D_DERMATOLOGICOS (GESTOR)",
-        "11296 10E ESPECIALIZADOS ",
-        "11296 10E ESPECIALIZADOS (GESTOR)",
-        "11080 10G_SIST GENITOURINARIO Y HORMONAS SEX ",
-        "11080 10G_SIST GENITOURINARIO Y HORMONAS SEX (GESTOR)",
-        "11081 10H_PREP HORM SIST (EXCLUY HORMONAS SEX) ",
-        "11081 10H_PREP HORM SIST (EXCLUY HORMONAS SEX) (GESTOR)",
-        "11082 10J_ANTIINFECCIOSOS SISTEMICOS GENERALES ",
-        "11082 10J_ANTIINFECCIOSOS SISTEMICOS GENERALES (GESTOR)",
-        "11083 10K_SOLUCIONES HOSPITALARIAS ",
-        "11083 10K_SOLUCIONES HOSPITALARIAS (GESTOR)",
-        "11084 10L_ANTINEOPLASICOS Y AGTS INMUNOMODUL ",
-        "11084 10L_ANTINEOPLASICOS Y AGTS INMUNOMODUL (GESTOR)",
-        "11085 10M_SISTEMA MUSCULO ESQUELETICO ",
-        "11085 10M_SISTEMA MUSCULO ESQUELETICO (GESTOR)",
-        "11086 10N_SISTEMA NERVIOSO CENTRAL ",
-        "11086 10N_SISTEMA NERVIOSO CENTRAL (GESTOR)",
-        "11087 10P_PARASITOLOGIA ",
-        "11087 10P_PARASITOLOGIA (GESTOR)",
-        "11088 10R_SISTEMA RESPIRATORIO ",
-        "11088 10R_SISTEMA RESPIRATORIO (GESTOR)",
-        "11089 10S_ORGANOS DE LOS SENTIDOS ",
-        "11089 10S_ORGANOS DE LOS SENTIDOS (GESTOR)",
-        "11090 10T AGENTES DE DIAGNOSTICO ",
-        "11090 10T AGENTES DE DIAGNOSTICO (GESTOR)",
-        "11091 10V_VARIOS ",
-        "11091 10V_VARIOS (GESTOR)",
-        "11092 10W_PRODUCTOS NATURALES ",
-        "11092 10W_PRODUCTOS NATURALES (GESTOR)",
-        "11297 10Y REFRIGERADOS ",
-        "11297 10Y REFRIGERADOS (GESTOR)",
-        "11298 10Z CONTROLADOS ",
-        "11298 10Z CONTROLADOS (GESTOR)",
-        "11094 11A_RESPIRATORIOS OTC ",
-        "11094 11A_RESPIRATORIOS OTC (GESTOR)",
-        "11095 11B_ANALGESICOS OTC ",
-        "11095 11B_ANALGESICOS OTC (GESTOR)",
-        "11096 11C_GASTROINTEST OTC (TRACTO ALIMENT) ",
-        "11096 11C_GASTROINTEST OTC (TRACTO ALIMENT) (GESTOR)",
-        "11097 11D_SUEROS ORALES (SUSTIT ELECTROL ORAL) ",
-        "11097 11D_SUEROS ORALES (SUSTIT ELECTROL ORAL) (GESTOR)",
-        "11098 11E_GINECOLOGICOS OTC Y PROD SEX ",
-        "11098 11E_GINECOLOGICOS OTC Y PROD SEX (GESTOR)",
-        "11099 11F_DERMATOLOGICOS OTC ",
-        "11099 11F_DERMATOLOGICOS OTC (GESTOR)",
-        "11100 11G_OFTALMOLOGICOS Y OTICOS OTC ",
-        "11100 11G_OFTALMOLOGICOS Y OTICOS OTC (GESTOR)",
-        "11101 11H_VITAMINAS Y MINERALES OTC ",
-        "11101 11H_VITAMINAS Y MINERALES OTC (GESTOR)",
-        "11102 11I_NUTRICIONALES OTC ",
-        "11102 11I_NUTRICIONALES OTC (GESTOR)",
-        "11103 11J_INCONTINENCIA OTC Y ACCESORIOS",
-        "11104 11K_MATERIAL Y ACCESORIOS PARA CURACION ",
-        "11104 11K_MATERIAL Y ACCESORIOS PARA CURACION (GESTOR)",
-        "11105 11L_HIGIENE BUCAL",
-        "11106 11M ORTOPEDICOS ACC TERAP Y ME ",
-        "11106 11M ORTOPEDICOS ACC TERAP Y ME (GESTOR)",
-        "11107 11N_PRUEBAS Y TEST DE DIAGNOSTICO ",
-        "11107 11N_PRUEBAS Y TEST DE DIAGNOSTICO (GESTOR)",
-        "11108 11O_OPTICA",
-        "11109 11P_CUIDADO DE LOS PIES ",
-        "11109 11P_CUIDADO DE LOS PIES (GESTOR)",
-        "11110 11R_PRODUCTOS NATURALES ",
-        "11110 11R_PRODUCTOS NATURALES (GESTOR)",
-        "11111 11S_PRODUCTOS HOMEOPATICOS ",
-        "11111 11S_PRODUCTOS HOMEOPATICOS (GESTOR)",
-        "11112 11T_OTC VARIOS ",
-        "11112 11T_OTC VARIOS (GESTOR)",
-        "11017 ABARROTES GOURMET ",
-        "11017 ABARROTES GOURMET (GESTOR)",
-        "11283 ACCESORIOS CALZADO",
-        "11179 ACCESORIOS ELECTRICOS P/ARREGLO PERSONAL",
-        "11133 ACCESORIOS ESCOLARES Y DE OFICINA",
-        "11176 ACCESORIOS PARA EL CABELLO",
-        "11019 ACEITES COMESTIBLES ",
-        "11019 ACEITES COMESTIBLES (GESTOR)",
-        "11010 ADEREZOS ",
-        "11010 ADEREZOS (GESTOR)",
-        "11033 AGUA Y HIELO ",
-        "11033 AGUA Y HIELO (GESTOR)",
-        "11164 AIRES Y CALEFACTORES",
-        "11228 ALIMENTOS REFRIGERADOS ",
-        "11228 ALIMENTOS REFRIGERADOS (GESTOR)",
-        "11318 ALUMINIOS Y ENVOLTURAS.",
-        "11322 AROMATIZANTES.",
-        "11132 ARTICULOS DE ESCRITURA",
-        "11125 AUDIO",
-        "11022 AZUCAR Y SUSTITUTOS ",
-        "11022 AZUCAR Y SUSTITUTOS (GESTOR)",
-        "11018 BARRAS DE CEREAL ",
-        "11018 BARRAS DE CEREAL (GESTOR)",
-        "11344 BEBES ACCESORIOS Y MUEBLES INFANTILES.",
-        "11249 BEBES ALIMENTOS ",
-        "11307 BEBES ALIMENTOS ",
-        "11249 BEBES ALIMENTOS (GESTOR)",
-        "11307 BEBES ALIMENTOS (GESTOR)",
-        "11348 BEBES ALIMENTOS. ",
-        "11348 BEBES ALIMENTOS. (GESTOR)",
-        "11242 BEBES BLANCOS",
-        "11273 BEBES CALCETERIA",
-        "11300 BEBES CALCETERIA",
-        "11346 BEBES FORMULAS INFANTILES.",
-        "11242 BEBES NIÑA",
-        "11243 BEBES NIÑO",
-        "11345 BEBES PAÑALES.",
-        "11347 BEBES PERFUMERIA.",
-        "11299 BEBES ROPA INTERIOR",
-        "11035 BEBIDAS ",
-        "11367 BEBIDAS ",
-        "11035 BEBIDAS (GESTOR)",
-        "11367 BEBIDAS (GESTOR)",
-        "11145 BICICLETAS",
-        "11147 BICICLETAS, MONTABLES Y PATINES",
-        "11288 BLANCOS BAÑO",
-        "11289 BLANCOS CAMA",
-        "11290 BLANCOS CLOSET",
-        "11291 BLANCOS COCINA",
-        "11338 BLOQUEADORES Y BRONCEADORES.",
-        "11032 BOTANAS ",
-        "11032 BOTANAS (GESTOR)",
-        "11312 BOTANAS.",
-        "11266 CABALLEROS ACCESORIOS",
-        "11282 CABALLEROS CALCETERIA",
-        "11268 CABALLEROS CASUAL",
-        "11270 CABALLEROS FORMAL",
-        "11267 CABALLEROS JUNIOR",
-        "11269 CABALLEROS ROPA DEPORTIVA",
-        "11281 CABALLEROS ROPA INTERIOR",
-        "11271 CABALLEROS TALLA EXTRA",
-        "11023 CAFES ",
-        "11023 CAFES (GESTOR)",
-        "11284 CALZADO CABALLEROS",
-        "11285 CALZADO DAMA",
-        "11286 CALZADO NIÑA",
-        "11287 CALZADO NIÑO",
-        "11155 CAMARAS Y ACCESORIOS FOTOGRAFICOS",
-        "11325 CARBON E INICIADORES.",
-        "11206 CARNE DE CERDO",
-        "11218 CARNE DE PAVO",
-        "11217 CARNE DE POLLO",
-        "11205 CARNE DE RES",
-        "11214 CARNE SECA Y CHICHARRON PRENSADO",
-        "11333 CENTRO DE AFEITADO.",
-        "11013 CEREALES ",
-        "11013 CEREALES (GESTOR)",
-        "11003 Cereales Galletas Y Panes ",
-        "11003 Cereales Galletas Y Panes (GESTOR)",
-        "11055 CERVEZA ",
-        "11055 CERVEZA (GESTOR)",
-        "11005 CHILES ENVASADOS ",
-        "11005 CHILES ENVASADOS (GESTOR)",
-        "11313 CHOCOLATES. ",
-        "11313 CHOCOLATES. (GESTOR)",
-        "11209 CHORIZOS Y LONGANIZAS ",
-        "11209 CHORIZOS Y LONGANIZAS (GESTOR)",
-        "11331 CLOROS Y DESINFECTANTES.",
-        "11301 COCINA",
-        "11342 COLORACION.",
-        "11231 COMIDAS CONGELADAS ",
-        "11231 COMIDAS CONGELADAS (GESTOR)",
-        "11009 COMIDAS ENVASADAS Y ENTREMESES ",
-        "11009 COMIDAS ENVASADAS Y ENTREMESES (GESTOR)",
-        "11156 COMPUTO",
-        "11034 CONCENTRADOS PARA BEBIDAS ",
-        "11034 CONCENTRADOS PARA BEBIDAS (GESTOR)",
-        "11008 CONSOMES Y CALDOS ",
-        "11008 CONSOMES Y CALDOS (GESTOR)",
-        "11150 CONSTRUCCION",
-        "11339 COSMETICOS.",
-        "11224 CREMAS Y JOCOQUES ",
-        "11224 CREMAS Y JOCOQUES (GESTOR)",
-        "11340 CREMAS Y TRATAMIENTOS.",
-        "11021 CREMAS, SOPAS, PASTAS Y PURES ",
-        "11021 CREMAS, SOPAS, PASTAS Y PURES (GESTOR)",
-        "11131 CUADERNOS",
-        "11332 CUIDADO BUCAL.",
-        "11337 CUIDADO DE LA PIEL.",
-        "11324 CUIDADO DEL CALZADO.",
-        "11260 DAMAS ACCESORIOS",
-        "11261 DAMAS CASUAL",
-        "11262 DAMAS JUNIOR",
-        "11280 DAMAS MEDIAS Y CALCETERIA",
-        "11279 DAMAS ROPA DE DORMIR",
-        "11263 DAMAS ROPA DEPORTIVA",
-        "11278 DAMAS ROPA INTERIOR",
-        "11265 DAMAS TALLA EXTRA",
-        "11264 DAMAS VESTIR",
-        "11139 DECORACION Y MERCERIA",
-        "11208 DELI GOURMET ",
-        "11208 DELI GOURMET (GESTOR)",
-        "11143 DEPORTES DE EQUIPO",
-        "11142 DEPORTES PERSONALES Y EJERCITADORES",
-        "11329 DESMANCHADORES.",
-        "11310 DESPENSAS. ",
-        "11310 DESPENSAS. (GESTOR)",
-        "11319 DETERGENTES.",
-        "11031 DULCERIA ",
-        "11031 DULCERIA (GESTOR)",
-        "11311 DULCERIA. ",
-        "11311 DULCERIA. (GESTOR)",
-        "11161 ENSERES MENORES",
-        "11134 EQUIPAJE ESCOLAR",
-        "11001 ESPECIAS Y CONDIMENTOS ",
-        "11001 ESPECIAS Y CONDIMENTOS (GESTOR)",
-        "11135 ESTETICA AUTOMOTRIZ",
-        "11140 FIESTA",
-        "11343 FIJADORES Y MODELADORES.",
-        "11172 FRAGANCIAS",
-        "11004 FRIJOLES Y PLATILLOS MEXICANOS ENVASADOS ",
-        "11004 FRIJOLES Y PLATILLOS MEXICANOS ENVASADOS (GESTOR)",
-        "11064 FRITO Y ROSTIZADO",
-        "11219 FRUTAS",
-        "11349 FUENTE DE SODAS.",
-        "11014 GALLETAS ",
-        "11014 GALLETAS (GESTOR)",
-        "11225 GELATINAS Y POSTRES ",
-        "11225 GELATINAS Y POSTRES (GESTOR)",
-        "11215 GRANELES VARIOS",
-        "11020 GRANOS Y SEMILLAS ",
-        "11020 GRANOS Y SEMILLAS (GESTOR)",
-        "11027 HARINAS Y COMPLEMENTOS ",
-        "11027 HARINAS Y COMPLEMENTOS (GESTOR)",
-        "11230 HELADOS Y POSTRES ",
-        "11230 HELADOS Y POSTRES (GESTOR)",
-        "11115 HERRAMIENTAS",
-        "11129 HOGAR COCINA",
-        "11130 HOGAR MESA",
-        "11128 HOGAR ORGANIZACION",
-        "11216 HUEVO",
-        "11118 ILUMINACION",
-        "11149 INFANTIL Y PREESCOLAR",
-        "11321 INSECTICIDAS.",
-        "11335 JABONES Y ACCESORIOS PARA ASEO PERSONAL.",
-        "11211 JAMONES ",
-        "11211 JAMONES (GESTOR)",
-        "11314 JARCERIA.",
-        "11353 JARDINERIA.",
-        "11151 JUEGOS DE MESA Y SALON",
-        "11029 JUGOS Y NECTARES ",
-        "11369 JUGOS Y NECTARES ",
-        "11029 JUGOS Y NECTARES (GESTOR)",
-        "11369 JUGOS Y NECTARES (GESTOR)",
-        "11148 JUGUETES PARA NIÑA",
-        "11153 JUGUETES PARA NIÑO",
-        "11327 LAVATRASTES.",
-        "11377 LECHES ",
-        "11377 LECHES (GESTOR)",
-        "11024 LECHES EN POLVO ",
-        "11024 LECHES EN POLVO (GESTOR)",
-        "11229 LECHES ULTRAPASTEURIZADAS ",
-        "11229 LECHES ULTRAPASTEURIZADAS (GESTOR)",
-        "11222 LECHES Y BEBIDAS REFRIGERADAS ",
-        "11222 LECHES Y BEBIDAS REFRIGERADAS (GESTOR)",
-        "11057 LICORES Y ALTA GRADUACION",
-        "11330 LIMPIADORES ESPECIALIZADOS.",
-        "11326 LIMPIADORES PARA BAÑO.",
-        "11320 LIMPIADORES PARA EL HOGAR.",
-        "11162 LINEA BLANCA",
-        "11138 LLANTAS Y ACUMULADORES",
-        "11137 LUBRICANTES Y ADITIVOS PARA AUTOS",
-        "11117 MANTENIMIENTO DEL HOGAR",
-        "11226 MANTEQUILLAS Y MARGARINAS ",
-        "11226 MANTEQUILLAS Y MARGARINAS (GESTOR)",
-        "11037 MASCOTAS ",
-        "11037 MASCOTAS (GESTOR)",
-        "11315 MASCOTAS. ",
-        "11315 MASCOTAS. (GESTOR)",
-        "91 MEDICAMENTOS OTC ",
-        "91 MEDICAMENTOS OTC (GESTOR)",
-        "100 MEDICINA ETICA ",
-        "100 MEDICINA ETICA (GESTOR)",
-        "11016 MERMELADAS, JALEAS, MIELES Y CAJETAS ",
-        "11016 MERMELADAS, JALEAS, MIELES Y CAJETAS (GESTOR)",
-        "11012 MOLES Y ADOBOS ",
-        "11012 MOLES Y ADOBOS (GESTOR)",
-        "11351 MUEBLES DE CASA.",
-        "11352 MUEBLES DE JARDIN.",
-        "11144 NATACION, CAMPO, TIRO Y PESCA",
-        "11154 NAVIDAD",
-        "11250 NIÑAS ACCESORIOS",
-        "11275 NIÑAS CALCETERIA",
-        "11252 NIÑAS INFANTIL",
-        "11253 NIÑAS JUVENIL",
-        "11254 NIÑAS ROPA DEPORTIVA",
-        "11274 NIÑAS ROPA INTERIOR",
-        "11255 NIÑOS ACCESORIOS",
-        "11277 NIÑOS CALCETERIA",
-        "11256 NIÑOS ESCOLAR",
-        "11257 NIÑOS INFANTIL",
-        "11258 NIÑOS JUVENIL",
-        "11259 NIÑOS ROPA DEPORTIVA",
-        "11276 NIÑOS ROPA INTERIOR",
-        "11119 ORGANIZACION Y ALMACENAJE",
-        "11060 PAN DULCE",
-        "11061 PAN SALADO",
-        "11062 PANQUELERIA",
-        "11213 PASTAS EMBUTIDAS",
-        "11063 PASTEL & PAYS",
-        "11011 PESCADOS ENVASADOS ",
-        "11011 PESCADOS ENVASADOS (GESTOR)",
-        "11221 PESCADOS Y MARISCOS ",
-        "11221 PESCADOS Y MARISCOS (GESTOR)",
-        "11015 PINA REBANADAS ",
-        "11015 PINA REBANADAS (GESTOR)",
-        "11116 PINTURAS",
-        "11114 PLAN DE FIDELIDAD MG ",
-        "11114 PLAN DE FIDELIDAD MG (GESTOR)",
-        "11152 PLAYA Y JARDIN",
-        "11028 POSTRES ",
-        "11028 POSTRES (GESTOR)",
-        "11316 PRODUCTOS DE PAPEL PARA EL HOGAR.",
-        "11317 PRODUCTOS DESECHABLES PARA EL HOGAR.",
-        "11233 PROG. LEALTAD ASPIRACIONAL",
-        "11235 PROG. TACTICO INFANTIL",
-        "11336 PROTECCION FEMENINA.",
-        "11223 QUESOS ",
-        "11223 QUESOS (GESTOR)",
-        "11136 REFACCIONES Y ACCESORIOS PARA AUTOMOVIL",
-        "11030 REFRESCOS ",
-        "11030 REFRESCOS (GESTOR)",
-        "11026 SABORIZANTES PARA LECHE Y CAFE ",
-        "11026 SABORIZANTES PARA LECHE Y CAFE (GESTOR)",
-        "11212 SALCHICHAS ",
-        "11212 SALCHICHAS (GESTOR)",
-        "11007 SALSAS ENVASADAS ",
-        "11007 SALSAS ENVASADAS (GESTOR)",
-        "11341 SHAMPOOS Y ACONDICIONADORES.",
-        "11113 SIN CATEGORIA  FARM ",
-        "11113 SIN CATEGORIA  FARM (GESTOR)",
-        "11241 SIN CATEGORIA (PRO ESP) ",
-        "11241 SIN CATEGORIA (PRO ESP) (GESTOR)",
-        "11328 SUAVIZANTES PARA ROPA.",
-        "11334 TALCOS Y DESODORANTES.",
-        "11201 TARJETAS Y SORTEOS DE AYUDA ",
-        "11201 TARJETAS Y SORTEOS DE AYUDA (GESTOR)",
-        "11157 TELEFONIA",
-        "11025 TES DE INFUSION ",
-        "11025 TES DE INFUSION (GESTOR)",
-        "11210 TOCINOS ",
-        "11210 TOCINOS (GESTOR)",
-        "11002 TORTILLAS Y TOSTADAS EMPACADAS ",
-        "11002 TORTILLAS Y TOSTADAS EMPACADAS (GESTOR)",
-        "11059 TORTILLERIA",
-        "11146 VEHICULOS DE MOTOR A GASOLINA",
-        "11323 VELAS Y VELADORAS.",
-        "11220 VERDURAS",
-        "11006 VERDURAS Y VEGETALES ENVASADOS ",
-        "11006 VERDURAS Y VEGETALES ENVASADOS (GESTOR)",
-        "11124 VIDEO",
-        "11056 VINOS DE MESA",
-        "11227 YOGHURT ",
-        "11227 YOGHURT (GESTOR)"
-      ]);
-      const [showModal, setShowModal] = React.useState(false);
-      const [currentProduct, setCurrentProduct] = React.useState(null);
-      const [searchTerm, setSearchTerm] = React.useState('');
-      const [filterCategory, setFilterCategory] = React.useState('');
-      const [categoryAlerts, setCategoryAlerts] = React.useState(() => {
-        const saved = localStorage.getItem('categoryAlerts');
-        return saved ? JSON.parse(saved) : {
-          '11076 10A_TRACTO ALIMENTARIO Y METABOLISMO': 90,
-          '11077 10B_SANGRE Y APARATO HEMATOPOYETICO': 90,
-          '11078 10C_SISTEMA CARDIOVASCULAR': 90,
-          '11079 10D_DERMATOLOGICOS': 90,
-          '11296 10E ESPECIALIZADOS': 90,
-          '11080 10G_SIST GENITOURINARIO Y HORMONAS SEX': 90,
-          '11081 10H_PREP HORM SIST (EXCLUY HORMONAS SEX)': 90,
-          '11082 10J_ANTIINFECCIOSOS SISTEMICOS GENERALES': 90,
-          '11083 10K_SOLUCIONES HOSPITALARIAS': 90,
-          '11084 10L_ANTINEOPLASICOS Y AGTS INMUNOMODUL': 90,
-          '11085 10M_SISTEMA MUSCULO ESQUELETICO': 90,
-          '11086 10N_SISTEMA NERVIOSO CENTRAL': 90,
-          '11087 10P_PARASITOLOGIA': 90,
-          '11088 10R_SISTEMA RESPIRATORIO': 90,
-          '11089 10S_ORGANOS DE LOS SENTIDOS': 90,
-          '11090 10T AGENTES DE DIAGNOSTICO': 90,
-          '11091 10V_VARIOS': 90,
-          '11092 10W_PRODUCTOS NATURALES': 90,
-          '11297 10Y REFRIGERADOS': 90,
-          '11298 10Z CONTROLADOS': 90,
-          '11094 11A_RESPIRATORIOS OTC': 90,
-          '11095 11B_ANALGESICOS OTC': 90,
-          '11096 11C_GASTROINTEST OTC (TRACTO ALIMENT)': 90,
-          '11097 11D_SUEROS ORALES (SUSTIT ELECTROL ORAL)': 90,
-          '11098 11E_GINECOLOGICOS OTC Y PROD SEX': 90,
-          '11099 11F_DERMATOLOGICOS OTC': 90,
-          '11100 11G_OFTALMOLOGICOS Y OTICOS OTC': 90,
-          '11101 11H_VITAMINAS Y MINERALES OTC': 90,
-          '11102 11I_NUTRICIONALES OTC': 90,
-          '11104 11K_MATERIAL Y ACCESORIOS PARA CURACION': 90,
-          '11106 11M ORTOPEDICOS ACC TERAP Y ME': 90,
-          '11107 11N_PRUEBAS Y TEST DE DIAGNOSTICO': 90,
-          '11109 11P_CUIDADO DE LOS PIES': 90,
-          '11110 11R_PRODUCTOS NATURALES': 90,
-          '11111 11S_PRODUCTOS HOMEOPATICOS': 90,
-          '11112 11T_OTC VARIOS': 90,
-          '11017 ABARROTES GOURMET': 40,
-          '11019 ACEITES COMESTIBLES': 90,
-          '11010 ADEREZOS': 40,
-          '11033 AGUA Y HIELO': 90,
-          '11228 ALIMENTOS REFRIGERADOS': 10,
-          '11022 AZUCAR Y SUSTITUTOS': 90,
-          '11018 BARRAS DE CEREAL': 40,
-          '11249 BEBES ALIMENTOS': 30,
-          '11307 BEBES ALIMENTOS': 30,
-          '11348 BEBES ALIMENTOS.': 30,
-          '11035 BEBIDAS': 90,
-          '11367 BEBIDAS': 90,
-          '11032 BOTANAS': 30,
-          '11023 CAFES': 90,
-          '11013 CEREALES': 40,
-          '11003 Cereales Galletas Y Panes': 40,
-          '11055 CERVEZA': 40,
-          '11005 CHILES ENVASADOS': 40,
-          '11313 CHOCOLATES.': 45,
-          '11209 CHORIZOS Y LONGANIZAS': 30,
-          '11231 COMIDAS CONGELADAS': 30,
-          '11009 COMIDAS ENVASADAS Y ENTREMESES': 40,
-          '11034 CONCENTRADOS PARA BEBIDAS': 90,
-          '11008 CONSOMES Y CALDOS': 40,
-          '11224 CREMAS Y JOCOQUES': 10,
-          '11021 CREMAS, SOPAS, PASTAS Y PURES': 90,
-          '11208 DELI GOURMET': 15,
-          '11310 DESPENSAS.': 90,
-          '11031 DULCERIA': 45,
-          '11311 DULCERIA.': 45,
-          '11001 ESPECIAS Y CONDIMENTOS': 40,
-          '11004 FRIJOLES Y PLATILLOS MEXICANOS ENVASADOS': 40,
-          '11014 GALLETAS': 40,
-          '11225 GELATINAS Y POSTRES': 10,
-          '11020 GRANOS Y SEMILLAS': 90,
-          '11027 HARINAS Y COMPLEMENTOS': 90,
-          '11230 HELADOS Y POSTRES': 30,
-          '11211 JAMONES': 30,
-          '11029 JUGOS Y NECTARES': 90,
-          '11369 JUGOS Y NECTARES': 90,
-          '11377 LECHES': 90,
-          '11024 LECHES': 90,
-          '11229 LECHES ULTRAPASTEURIZADAS': 30,
-          '11222 LECHES Y BEBIDAS REFRIGERADAS': 6,
-          '11226 MANTEQUILLAS Y MARGARINAS': 30,
-          '11037 MASCOTAS': 90,
-          '11315 MASCOTAS.': 90,
-          '91 MEDICAMENTOS OTC': 90,
-          '100 MEDICINA ETICA': 90,
-          '11016 MERMELADAS, JALEAS, MIELES Y CAJETAS': 40,
-          '11012 MOLES Y ADOBOS': 40,
-          '11011 PESCADOS ENVASADOS': 40,
-          '11221 PESCADOS Y MARISCOS': 40,
-          '11015 PINA REBANADAS': 40,
-          '11114 PLAN DE FIDELIDAD MG': 30,
-          '11028 POSTRES': 40,
-          '11223 QUESOS': 15,
-          '11030 REFRESCOS': 30,
-          '11026 SABORIZANTES PARA LECHE Y CAFE': 90,
-          '11212 SALCHICHAS': 20,
-          '11007 SALSAS ENVASADAS': 40,
-          '11113 SIN CATEGORIA  FARM': 90,
-          '11241 SIN CATEGORIA (PRO ESP)': 30,
-          '11201 TARJETAS Y SORTEOS DE AYUDA': 30,
-          '11025 TES DE INFUSION': 40,
-          '11210 TOCINOS': 30,
-          '11002 TORTILLAS Y TOSTADAS EMPACADAS': 30,
-          '11006 VERDURAS Y VEGETALES ENVASADOS': 40,
-          '11227 YOGHURT': 20,
-        };
-      });
-      const [showSettings, setShowSettings] = React.useState(false);
-      const [notification, setNotification] = React.useState(null);
-      const [activeTab, setActiveTab] = React.useState('all');
+      const db = useIndexedDB();
+      
+      // Estado principal
+      const [darkMode, setDarkMode] = useState(false);
+      const [products, setProducts] = useState([]);
+      const [showModal, setShowModal] = useState(false);
+      const [editingProduct, setEditingProduct] = useState(null);
+      const [activeTab, setActiveTab] = useState('farmacia');
+      const [searchTerm, setSearchTerm] = useState('');
+      const [filterCategory, setFilterCategory] = useState('');
+      const [filterStatus, setFilterStatus] = useState('todos');
+      const [alerts, setAlerts] = useState({});
+      const [toast, setToast] = useState(null);
+      const [showScanner, setShowScanner] = useState(false);
+      const [barcodeResult, setBarcodeResult] = useState('');
+      const [importModal, setImportModal] = useState(false);
+      const [exportModal, setExportModal] = useState(false);
+      const [isLoading, setIsLoading] = useState(true);
 
-      // Efecto para cargar datos del localStorage al iniciar
-      React.useEffect(() => {
-        const savedProducts = localStorage.getItem('products');
-        const savedDarkMode = localStorage.getItem('darkMode');
-        const savedCategoryAlerts = localStorage.getItem('categoryAlerts');
-        
-        if (savedProducts) setProducts(JSON.parse(savedProducts));
-        if (savedDarkMode) setDarkMode(JSON.parse(savedDarkMode));
-        if (savedCategoryAlerts) setCategoryAlerts(JSON.parse(savedCategoryAlerts));
-        
-        // Solicitar permisos para notificaciones
-        if (Notification.permission !== 'granted' && Notification.permission !== 'denied') {
-          Notification.requestPermission();
-        }
-        
-        // Aplicar modo oscuro al body
-        if (JSON.parse(savedDarkMode || 'true')) {
-          document.body.classList.add('dark');
-        } else {
-          document.body.classList.remove('dark');
-        }
+      const fileInputRef = useRef(null);
+      const videoRef = useRef(null);
+      const canvasRef = useRef(null);
+      const streamRef = useRef(null);
+
+      // Categorías predefinidas
+      const categories = {
+        farmacia: [
+          'Analgésicos', 'Antibióticos', 'Antiinflamatorios', 'Antihistamínicos', 'Antipiréticos',
+          'Antidepresivos', 'Ansiolíticos', 'Antidiabéticos', 'Antihipertensivos', 'Estatinas',
+          'Broncodilatadores', 'Corticosteroides', 'Diuréticos', 'Anticoagulantes', 'Antiácidos',
+          'Laxantes', 'Suplementos vitamínicos', 'Insulina', 'Hormonas', 'Anticonceptivos',
+          'Oftálmicos', 'Dermatológicos', 'Antisépticos', 'Antifúngicos', 'Antivirales'
+        ],
+        alimentos: [
+          'Lácteos', 'Carnes', 'Pescados', 'Frutas', 'Verduras',
+          'Cereales', 'Legumbres', 'Harinas', 'Aceites', 'Conservas',
+          'Bebidas', 'Snacks', 'Postres', 'Condimentos', 'Especias',
+          'Congelados', 'Embutidos', 'Panadería', 'Pasteles', 'Galletas',
+          'Café', 'Té', 'Chocolate', 'Mermeladas', 'Salsas'
+        ],
+        otros: [
+          'Cosméticos', 'Cremas', 'Maquillaje', 'Perfumes', 'Desodorantes',
+          'Productos de limpieza', 'Detergentes', 'Jabones', 'Champús', 'Acondicionadores',
+          'Productos para bebés', 'Pañales', 'Toallitas húmedas', 'Repelentes', 'Protectores solares',
+          'Baterías', 'Pilas', 'Cartuchos de tinta', 'Productos químicos', 'Adhesivos',
+          'Pinturas', 'Disolventes', 'Lubricantes', 'Combustibles', 'Gas'
+        ]
+      };
+
+      // Alertas por defecto
+      const defaultAlerts = {
+        farmacia: 30,
+        alimentos: 15,
+        otros: 7
+      };
+
+      // Efecto para cargar datos del IndexedDB
+      useEffect(() => {
+        const loadData = async () => {
+          try {
+            // Cargar productos
+            const savedProducts = await db.getProducts();
+            if (savedProducts && Array.isArray(savedProducts)) {
+              setProducts(savedProducts);
+            }
+
+            // Cargar modo oscuro
+            const savedDarkMode = await db.getConfig('darkMode');
+            if (savedDarkMode !== null) {
+              setDarkMode(savedDarkMode === 'true');
+            } else {
+              // Detectar preferencia del sistema
+              const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+              setDarkMode(systemPrefersDark);
+            }
+
+            // Cargar alertas
+            const savedAlerts = await db.getConfig('alerts');
+            if (savedAlerts) {
+              setAlerts(savedAlerts);
+            } else {
+              setAlerts(defaultAlerts);
+            }
+          } catch (error) {
+            console.error('Error loading data from IndexedDB:', error);
+            // Usar valores por defecto en caso de error
+            setProducts([]);
+            setAlerts(defaultAlerts);
+            setDarkMode(window.matchMedia('(prefers-color-scheme: dark)').matches);
+          } finally {
+            setIsLoading(false);
+          }
+        };
+
+        loadData();
       }, []);
 
-      // Efecto para guardar productos en localStorage cuando cambian
-      React.useEffect(() => {
-        try {
-          localStorage.setItem('products', JSON.stringify(products));
-        } catch (error) {
-          console.error('Error saving products to localStorage:', error);
-        }
-      }, [products]);
-
-      // Efecto para guardar configuración de modo oscuro
-      React.useEffect(() => {
-        try {
-          localStorage.setItem('darkMode', JSON.stringify(darkMode));
-          if (darkMode) {
-            document.body.classList.add('dark');
-          } else {
-            document.body.classList.remove('dark');
-          }
-        } catch (error) {
-          console.error('Error saving dark mode to localStorage:', error);
-        }
-      }, [darkMode]);
-
-      // Efecto para guardar configuración de alertas
-      React.useEffect(() => {
-        try {
-          localStorage.setItem('categoryAlerts', JSON.stringify(categoryAlerts));
-        } catch (error) {
-          console.error('Error saving category alerts to localStorage:', error);
-        }
-      }, [categoryAlerts]);
-
-      // Efecto para verificar productos próximos a vencer y mostrar notificaciones
-      React.useEffect(() => {
-        const checkExpiringProducts = () => {
-          const today = new Date();
-          const expiringProducts = [];
-          
-          products.forEach(product => {
-            const expDate = new Date(product.expirationDate);
-            const daysUntilExpiry = Math.ceil((expDate - today) / (1000 * 60 * 60 * 24));
-            
-            // Extrae solo el nombre de la categoría (después del primer espacio)
-            const catName = product.category.replace(/^\d+\s*/, '');
-            const config = stageConfig[catName.replace(/[^a-zA-Z0-9]/g, '_')] || { etapa1: 90, etapa2: 60, etapa3: 30 };
-            let etapa = "";
-            
-            if (daysUntilExpiry <= 0) etapa = "MERMA";
-            else if (daysUntilExpiry <= 3) etapa = "PRÓXIMO A MERMA";
-            else if (stageConfig[catName.replace(/[^a-zA-Z0-9]/g, '_')]) {
-              if (daysUntilExpiry <= config.etapa3) etapa = "ETAPA 3";
-              else if (daysUntilExpiry <= config.etapa2) etapa = "ETAPA 2";
-              else if (daysUntilExpiry <= config.etapa1) etapa = "ETAPA 1";
-            }
-            
-            if (etapa && daysUntilExpiry <= 7) { // Solo notificar si está a 7 días o menos
-              expiringProducts.push({
-                name: product.name,
-                days: daysUntilExpiry,
-                etapa: etapa
-              });
-            }
-          });
-          
-          if (expiringProducts.length > 0) {
-            showNotification(
-              `${expiringProducts.length} producto${expiringProducts.length > 1 ? 's' : ''} por vencer`,
-              `${expiringProducts.map(p => `${p.name} (${p.days <= 0 ? 'vencido' : p.days + ' días'})`).join(', ')}`
-            );
-            
-            if (Notification.permission === 'granted') {
-              new Notification('¡Productos por vencer!', {
-                body: `${expiringProducts.length} producto${expiringProducts.length > 1 ? 's' : ''} en ${expiringProducts[0].etapa}`,
-                icon: 'https://cdn-icons-png.flaticon.com/512/2972/2972431.png'
-              });
-            }
+      // Efecto para guardar productos en IndexedDB
+      useEffect(() => {
+        if (isLoading) return;
+        
+        const saveData = async () => {
+          try {
+            await db.saveProducts(products);
+          } catch (error) {
+            console.error('Error saving products to IndexedDB:', error);
+            showToast('Error al guardar los productos', 'error');
           }
         };
-        
-        checkExpiringProducts();
-        const interval = setInterval(checkExpiringProducts, 86400000); // cada 24h
-        
-        return () => clearInterval(interval);
-      }, [products, categoryAlerts]);
 
-      // Función para mostrar notificaciones
-      const showNotification = (title, message) => {
-        setNotification({ title, message });
-        setTimeout(() => setNotification(null), 5000);
-      };
+        saveData();
+      }, [products, isLoading]);
 
-      // Función para determinar el estado del producto (fresco, por vencer, vencido)
+      // Efecto para guardar configuración en IndexedDB
+      useEffect(() => {
+        if (isLoading) return;
+        
+        const saveConfig = async () => {
+          try {
+            await db.saveConfig('darkMode', darkMode.toString());
+          } catch (error) {
+            console.error('Error saving dark mode to IndexedDB:', error);
+          }
+        };
+
+        saveConfig();
+        
+        // Aplicar modo oscuro al body
+        if (darkMode) {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
+      }, [darkMode, isLoading]);
+
+      useEffect(() => {
+        if (isLoading) return;
+        
+        const saveAlerts = async () => {
+          try {
+            await db.saveConfig('alerts', alerts);
+          } catch (error) {
+            console.error('Error saving alerts to IndexedDB:', error);
+          }
+        };
+
+        saveAlerts();
+      }, [alerts, isLoading]);
+
+      // Función para obtener estado del producto
       const getProductStatus = (product) => {
         const today = new Date();
-        const expDate = new Date(product.expirationDate);
-        const days = Math.ceil((expDate - today) / (1000 * 60 * 60 * 24));
+        const expiryDate = new Date(product.expiryDate);
+        const timeDiff = expiryDate - today;
+        const daysDiff = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
+
+        const alertDays = alerts[product.categoryType] || 15;
+
+        if (daysDiff < 0) return 'vencido';
+        if (daysDiff <= alertDays) return 'porVencer';
+        if (product.quantity <= 2) return 'porMermar';
+        return 'bueno';
+      };
+
+      // Función para obtener icono de estado
+      const getStatusIcon = (status) => {
+        switch (status) {
+          case 'bueno': return '✅';
+          case 'porVencer': return '⚠️';
+          case 'vencido': return '❌';
+          case 'porMermar': return '⏳';
+          default: return '✅';
+        }
+      };
+
+      // Filtrar y buscar productos
+      const filteredProducts = useMemo(() => {
+        return products.filter(product => {
+          // Filtro por pestaña activa
+          if (product.categoryType !== activeTab) return false;
+          
+          // Filtro por búsqueda
+          if (searchTerm && !product.name.toLowerCase().includes(searchTerm.toLowerCase())) return false;
+          
+          // Filtro por categoría específica
+          if (filterCategory && product.category !== filterCategory) return false;
+          
+          // Filtro por estado
+          if (filterStatus !== 'todos') {
+            const status = getProductStatus(product);
+            if (filterStatus === 'buenos' && status !== 'bueno') return false;
+            if (filterStatus === 'porVencer' && status !== 'porVencer') return false;
+            if (filterStatus === 'porMermar' && status !== 'porMermar') return false;
+            if (filterStatus === 'vencidos' && status !== 'vencido') return false;
+          }
+          
+          return true;
+        });
+      }, [products, activeTab, searchTerm, filterCategory, filterStatus]);
+
+      // Estadísticas
+      const stats = useMemo(() => {
+        const total = filteredProducts.length;
+        const bueno = filteredProducts.filter(p => getProductStatus(p) === 'bueno').length;
+        const porVencer = filteredProducts.filter(p => getProductStatus(p) === 'porVencer').length;
+        const vencido = filteredProducts.filter(p => getProductStatus(p) === 'vencido').length;
+        const porMermar = filteredProducts.filter(p => getProductStatus(p) === 'porMermar').length;
         
-        if (days <= 0) return 'expired';
-        
-        const catName = cleanCategoryName(product.category);
-        const config = stageConfig[catName] || { etapa1: 90, etapa2: 60, etapa3: 30 };
-        
-        // Si la categoría tiene configuración de etapas
-        if (stageConfig[catName]) {
-          if (days <= config.etapa3) return 'warning';
-          if (days <= config.etapa2) return 'warning';
-          if (days <= config.etapa1) return 'warning';
+        return { total, bueno, porVencer, vencido, porMermar };
+      }, [filteredProducts]);
+
+      // Mostrar toast
+      const showToast = (message, type = 'success') => {
+        setToast({ message, type });
+        setTimeout(() => setToast(null), 3000);
+      };
+
+      // Manejar agregar/editar producto
+      const handleSaveProduct = (productData) => {
+        if (editingProduct) {
+          setProducts(prev => prev.map(p => p.id === editingProduct.id ? { ...productData, id: editingProduct.id } : p));
+          showToast('Producto actualizado correctamente', 'success');
         } else {
-          // Si no tiene configuración de etapas, usar alerta de 3 días
-          if (days <= 3) return 'warning';
+          const newProduct = { ...productData, id: Date.now() };
+          setProducts(prev => [...prev, newProduct]);
+          showToast('Producto agregado correctamente', 'success');
         }
-        
-        return 'fresh';
+        setShowModal(false);
+        setEditingProduct(null);
       };
 
-      // Función para obtener los días restantes
-      const getDaysRemaining = (expirationDate) => {
-        const today = new Date();
-        const expDate = new Date(expirationDate);
-        const days = Math.ceil((expDate - today) / (1000 * 60 * 60 * 24));
-        return days;
-      };
-
-      // Función para agregar o editar un producto
-      const saveProduct = (product) => {
-        try {
-          if (currentProduct) {
-            // Editar existente
-            const updatedProducts = products.map(p => 
-              p.id === currentProduct.id ? {...product, id: currentProduct.id} : p
-            );
-            setProducts(updatedProducts);
-            showNotification('Producto actualizado', `${product.name} ha sido actualizado`);
-          } else {
-            // Agregar nuevo
-            const newProduct = {
-              ...product,
-              id: Date.now().toString()
-            };
-            setProducts([...products, newProduct]);
-            showNotification('Producto agregado', `${product.name} ha sido agregado`);
-          }
-          setShowModal(false);
-          setCurrentProduct(null);
-        } catch (error) {
-          console.error('Error saving product:', error);
-          alert('Error al guardar el producto. Por favor, intente nuevamente.');
+      // Manejar eliminación
+      const handleDeleteProduct = (id) => {
+        if (window.confirm('¿Estás seguro de que deseas eliminar este producto?')) {
+          setProducts(prev => prev.filter(p => p.id !== id));
+          showToast('Producto eliminado', 'info');
         }
       };
 
-      // Función para eliminar un producto
-      const deleteProduct = (id) => {
-        const product = products.find(p => p.id === id);
-        if (product) {
-          if (window.confirm(`¿Está seguro de eliminar ${product.name}?`)) {
-            setProducts(products.filter(product => product.id !== id));
-            showNotification('Producto eliminado', `${product.name} ha sido eliminado`);
-          }
-        }
-      };
-
-      // Función para exportar a CSV
-      const exportToCSV = () => {
-        if (products.length === 0) {
-          showNotification('No hay productos', 'No hay productos para exportar');
-          return;
-        }
-        try {
-          // Crear contenido CSV
-          const headers = ['Nombre', 'Categoría', 'Cantidad', 'Fecha de Vencimiento', 'Código de Barras'];
-          let csvContent = headers.join(',') + '\n';
-          
-          products.forEach(product => {
-            const row = [
-              `"${product.name}"`, 
-              `"${product.category}"`,
-              product.quantity,
-              product.expirationDate,
-              `"${product.barcode || ''}"`
-            ].join(',');
-            csvContent += row + '\n';
-          });
-          
-          // Crear y descargar archivo CSV
-          const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-          const link = document.createElement('a');
-          const url = URL.createObjectURL(blob);
-          link.setAttribute('href', url);
-          link.setAttribute('download', `inventario_${new Date().toISOString().split('T')[0]}.csv`);
-          link.style.visibility = 'hidden';
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          
-          showNotification('Exportación exitosa', 'Datos exportados a CSV');
-        } catch (error) {
-          console.error('Error exporting to CSV:', error);
-          alert('Error al exportar a CSV. Por favor, intente nuevamente.');
-        }
-      };
-
-      // Función para importar CSV
-      const importFromCSV = (e) => {
-        const file = e.target.files[0];
+      // Manejar importación CSV
+      const handleImportCSV = (event) => {
+        const file = event.target.files[0];
         if (!file) return;
-        
+
         const reader = new FileReader();
         reader.onload = (e) => {
           try {
-            const content = e.target.result;
-            const lines = content.split('\n');
-            // Omitir la primera línea (encabezados)
-            const importedProducts = [];
-            let successCount = 0;
-            let errorCount = 0;
-            
-            for (let i = 1; i < lines.length; i++) {
-              if (!lines[i].trim()) continue;
-              const values = lines[i].split(',');
-              // Limpiar comillas
-              const cleanValue = (value) => value.replace(/^"|"$/g, '');
-              
-              // Validar fecha
-              const date = new Date(values[3]);
-              if (isNaN(date.getTime())) {
-                errorCount++;
-                continue;
+            const text = e.target.result;
+            const lines = text.split('\n').filter(line => line.trim());
+            const imported = [];
+            let errors = 0;
+
+            for (let i = 1; i < lines.length; i++) { // Saltar encabezado
+              const cols = lines[i].split(',').map(col => col.trim().replace(/^"(.*)"$/, '$1'));
+              if (cols.length >= 5) {
+                const [name, category, quantity, expiryDate, barcode] = cols;
+                if (name && category && quantity && expiryDate) {
+                  imported.push({
+                    id: Date.now() + i,
+                    name,
+                    category,
+                    quantity: parseInt(quantity) || 1,
+                    expiryDate,
+                    barcode: barcode || '',
+                    categoryType: 'alimentos', // Default
+                    image: ''
+                  });
+                } else {
+                  errors++;
+                }
+              } else {
+                errors++;
               }
-              
-              importedProducts.push({
-                id: Date.now().toString() + i,
-                name: cleanValue(values[0]),
-                category: cleanValue(values[1]),
-                quantity: parseInt(values[2]) || 1,
-                expirationDate: values[3],
-                barcode: values[4] ? cleanValue(values[4]) : ''
-              });
-              successCount++;
             }
-            
-            setProducts([...products, ...importedProducts]);
-            showNotification(
-              'Importación completada', 
-              `${successCount} producto${successCount !== 1 ? 's' : ''} importado${successCount !== 1 ? 's' : ''} (${errorCount} errores)`
-            );
+
+            setProducts(prev => [...prev, ...imported]);
+            showToast(`Importación completada: ${imported.length} productos agregados, ${errors} errores`, 'success');
+            setImportModal(false);
           } catch (error) {
-            console.error('Error importing CSV:', error);
-            alert('Error al importar el archivo CSV. Por favor, verifique el formato.');
+            showToast('Error al procesar el archivo CSV', 'error');
           }
         };
         reader.readAsText(file);
+        event.target.value = '';
       };
 
-      // Función para exportar a PDF
-      const exportToPDF = async () => {
-        if (products.length === 0) {
-          showNotification('No hay productos', 'No hay productos para exportar');
-          return;
-        }
-        
-        try {
-          const { jsPDF } = window.jspdf;
-          const doc = new jsPDF();
-          
-          // Título
-          doc.setFontSize(18);
-          doc.text('Inventario de Productos', 14, 22);
-          
-          // Fecha
-          doc.setFontSize(11);
-          doc.text(`Fecha: ${new Date().toLocaleDateString()}`, 14, 30);
-          
-          // Estadísticas
-          const today = new Date();
-          const expired = products.filter(p => getDaysRemaining(p.expirationDate) <= 0).length;
-          const warning = products.filter(p => getDaysRemaining(p.expirationDate) <= 30 && getDaysRemaining(p.expirationDate) > 0).length;
-          const fresh = products.length - expired - warning;
-          
-          doc.setFontSize(10);
-          doc.text(`Total: ${products.length} productos`, 14, 40);
-          doc.text(`En buen estado: ${fresh}`, 14, 45);
-          doc.text(`Por vencer: ${warning}`, 14, 50);
-          doc.text(`Vencidos: ${expired}`, 14, 55);
-          
-          // Encabezados de tabla
-          const tableColumn = [
-            "Código",
-            "Nombre",
-            "Ctg",
-            "Cantidad",
-            "Vencimiento",
-            "Status",
-            "Días",
-            "Etapa"
-          ];
-          
-          const tableRows = [];
-          for (const product of products) {
-            const status = getProductStatus(product);
-            const days = getDaysRemaining(product.expirationDate);
-            const statusLabel =
-              status === 'fresh'
-                ? 'En buen estado'
-                : status === 'warning'
-                ? 'Por vencer'
-                : 'Vencido';
-            
-            const code = product.category.split(' ')[0]; // Extraer código de categoría
-            const stage = getProductStage(product);
-            
-            tableRows.push([
-              code,
-              product.name,
-              product.category.substring(0, 10) + '...',
-              product.quantity,
-              new Date(product.expirationDate).toLocaleDateString(),
-              statusLabel,
-              days > 0
-                ? `${days} día${days !== 1 ? 's' : ''}`
-                : days === 0
-                ? '¡Vence hoy!'
-                : 'Vencido',
-              stage
-            ]);
-          }
-          
-          doc.autoTable({
-            head: [tableColumn],
-            body: tableRows,
-            startY: 65,
-            theme: 'striped',
-            styles: { fontSize: 8 },
-            columnStyles: { 
-              0: { cellWidth: 20 },
-              1: { cellWidth: 40 },
-              2: { cellWidth: 30 },
-              3: { cellWidth: 15 },
-              4: { cellWidth: 25 },
-              5: { cellWidth: 25 },
-              6: { cellWidth: 20 },
-              7: { cellWidth: 25 }
-            }
-          });
-          
-          // Guardar PDF
-          doc.save(`inventario_${new Date().toISOString().split('T')[0]}.pdf`);
-          showNotification('Exportación exitosa', 'Datos exportados a PDF');
-        } catch (error) {
-          console.error('Error exporting to PDF:', error);
-          alert('Error al exportar a PDF. Por favor, intente nuevamente.');
-        }
+      // Manejar exportación CSV
+      const handleExportCSV = () => {
+        const headers = ['Nombre', 'Categoría', 'Cantidad', 'Fecha', 'Código'];
+        const csvContent = [
+          headers.join(','),
+          ...products.map(p => [
+            `"${p.name}"`,
+            `"${p.category}"`,
+            p.quantity,
+            p.expiryDate,
+            `"${p.barcode || ''}"`
+          ].join(','))
+        ].join('\n');
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', `productos_caducidad_${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        showToast('Productos exportados a CSV', 'success');
+        setExportModal(false);
       };
 
-      // Filtrar productos según búsqueda, categoría y pestaña activa
-      const filteredProducts = products.filter(product => {
-        const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesCategory = filterCategory === '' || product.category === filterCategory;
+      // Generar PDF
+      const generatePDF = () => {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
         
-        let matchesTab = true;
-        if (activeTab === 'fresh') {
-          matchesTab = getProductStatus(product) === 'fresh';
-        } else if (activeTab === 'warning') {
-          matchesTab = getProductStatus(product) === 'warning';
-        } else if (activeTab === 'expired') {
-          matchesTab = getProductStatus(product) === 'expired';
-        } else if (activeTab === 'approaching') {
-          matchesTab = getProductStage(product) === 'PRÓXIMO A MERMA';
-        }
-        
-        return matchesSearch && matchesCategory && matchesTab;
-      });
+        doc.setFontSize(20);
+        doc.text('Reporte de Control de Caducidades', 14, 20);
+        doc.setFontSize(12);
+        doc.text(`Fecha: ${new Date().toLocaleDateString()}`, 14, 30);
+        doc.text(`Total de productos: ${products.length}`, 14, 40);
 
-      // Calcular estadísticas
-      const stats = React.useMemo(() => {
-        const today = new Date();
-        return {
-          total: products.length,
-          fresh: products.filter(p => getProductStatus(p) === 'fresh').length,
-          warning: products.filter(p => getProductStatus(p) === 'warning').length,
-          expired: products.filter(p => getProductStatus(p) === 'expired').length,
-          approaching: products.filter(p => getProductStage(p) === 'PRÓXIMO A MERMA').length
-        };
-      }, [products]);
+        // Tabla de productos
+        const tableData = products.map(p => [
+          p.name,
+          p.category,
+          p.quantity.toString(),
+          p.expiryDate,
+          getProductStatus(p)
+        ]);
 
-      // Componente de modal para agregar/editar producto
-      const ProductFormModal = () => {
-        const [formData, setFormData] = React.useState({
-          name: (currentProduct && currentProduct.name) || '',
-          category: (currentProduct && currentProduct.category) || categories[0],
-          quantity: (currentProduct && currentProduct.quantity) || 1,
-          expirationDate: (currentProduct && currentProduct.expirationDate) || new Date().toISOString().split('T')[0],
-          barcode: (currentProduct && currentProduct.barcode) || '',
-          photo: (currentProduct && currentProduct.photo) || ''
+        doc.autoTable({
+          head: [['Nombre', 'Categoría', 'Cantidad', 'Fecha', 'Estado']],
+          body: tableData,
+          startY: 50
         });
-        const [scanning, setScanning] = React.useState(false);
-        const [errors, setErrors] = React.useState({});
 
-        React.useEffect(() => {
-          if (!scanning) return;
-          
-          // Cargar QuaggaJS desde CDN si no está cargado
-          if (!window.Quagga) {
-            const script = document.createElement('script');
-            script.src = "https://unpkg.com/quagga@0.12.1/dist/quagga.min.js";
-            script.onload = startScanner;
-            document.body.appendChild(script);
-            return () => { document.body.removeChild(script); };
-          } else {
-            startScanner();
-          }
-          
-          function startScanner() {
-            if (window.Quagga) {
-              window.Quagga.stop();
-            }
-            
-            window.Quagga.init({
+        doc.save(`reporte_caducidad_${new Date().toISOString().split('T')[0]}.pdf`);
+        showToast('Reporte PDF generado', 'success');
+      };
+
+      // Iniciar escaneo de código de barras
+      const startScanner = () => {
+        setShowScanner(true);
+        setTimeout(() => {
+          if (Quagga) {
+            Quagga.init({
               inputStream: {
+                name: "Live",
                 type: "LiveStream",
+                target: videoRef.current,
                 constraints: {
+                  width: 640,
+                  height: 480,
                   facingMode: "environment"
                 },
-                target: document.querySelector('#barcode-scanner')
               },
               decoder: {
-                readers: ["ean_reader", "ean_8_reader", "code_128_reader", "upc_reader"]
+                readers: [
+                  "code_128_reader",
+                  "ean_reader",
+                  "ean_8_reader",
+                  "code_39_reader",
+                  "code_39_vin_reader",
+                  "codabar_reader",
+                  "upc_reader",
+                  "upc_e_reader",
+                  "i2of5_reader"
+                ]
               }
             }, function(err) {
               if (err) {
-                setScanning(false);
-                showNotification('Error', 'No se pudo iniciar el escáner');
+                console.error(err);
+                showToast('Error al iniciar la cámara', 'error');
+                setShowScanner(false);
                 return;
               }
-              window.Quagga.start();
-            });
-            
-            window.Quagga.onDetected(data => {
-              setFormData(f => ({ ...f, barcode: data.codeResult.code }));
-              setScanning(false);
-              window.Quagga.stop();
-              window.Quagga.offDetected();
+              Quagga.start();
+              Quagga.onDetected((data) => {
+                setBarcodeResult(data.codeResult.code);
+                Quagga.stop();
+                setShowScanner(false);
+              });
             });
           }
-          
-          return () => {
-            if (window.Quagga) {
-              window.Quagga.stop();
-              window.Quagga.offDetected();
-            }
-          };
-        }, [scanning]);
+        }, 500);
+      };
+
+      // Detener escaneo
+      const stopScanner = () => {
+        if (Quagga) {
+          Quagga.stop();
+        }
+        setShowScanner(false);
+      };
+
+      // Componente de producto
+      const ProductCard = ({ product }) => {
+        const status = getProductStatus(product);
+        const statusColor = {
+          bueno: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+          porVencer: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
+          vencido: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+          porMermar: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+        };
+
+        return (
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 mb-3 border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-shadow duration-200">
+            <div className="flex justify-between items-start mb-2">
+              <h3 className="font-semibold text-lg">{product.name}</h3>
+              <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColor[status]}`}>
+                {getStatusIcon(status)} {status === 'bueno' ? 'Bueno' : status === 'porVencer' ? 'Por vencer' : status === 'vencido' ? 'Vencido' : 'Por mermar'}
+              </span>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-2 text-sm mb-3">
+              <div><span className="font-medium">Categoría:</span> {product.category}</div>
+              <div><span className="font-medium">Cantidad:</span> {product.quantity}</div>
+              <div><span className="font-medium">Fecha:</span> {product.expiryDate}</div>
+              <div><span className="font-medium">Código:</span> {product.barcode || 'N/A'}</div>
+            </div>
+
+            {product.image && (
+              <img src={product.image} alt={product.name} className="w-full h-32 object-cover rounded mb-3" />
+            )}
+
+            <div className="flex justify-end space-x-2">
+              <button 
+                onClick={() => { setEditingProduct(product); setShowModal(true); }}
+                className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 text-sm"
+              >
+                <i className="fas fa-edit mr-1"></i>Editar
+              </button>
+              <button 
+                onClick={() => handleDeleteProduct(product.id)}
+                className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 text-sm"
+              >
+                <i className="fas fa-trash mr-1"></i>Eliminar
+              </button>
+            </div>
+          </div>
+        );
+      };
+
+      // Componente de modal
+      const Modal = ({ children, onClose }) => (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full max-h-screen overflow-y-auto scrollbar-custom">
+            <div className="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700">
+              <h2 className="text-xl font-semibold">Agregar Producto</h2>
+              <button onClick={onClose} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                <i className="fas fa-times"></i>
+              </button>
+            </div>
+            <div className="p-4">
+              {children}
+            </div>
+          </div>
+        </div>
+      );
+
+      // Componente de formulario
+      const ProductForm = ({ initialData = null, onSave, onCancel }) => {
+        const [formData, setFormData] = useState({
+          name: initialData?.name || '',
+          category: initialData?.category || categories[activeTab][0],
+          quantity: initialData?.quantity || 1,
+          expiryDate: initialData?.expiryDate || '',
+          barcode: initialData?.barcode || '',
+          image: initialData?.image || ''
+        });
+        const [errors, setErrors] = useState({});
+        const fileInputRef = useRef(null);
 
         const handleChange = (e) => {
           const { name, value } = e.target;
-          setFormData({
-            ...formData,
-            [name]: name === 'quantity' ? parseInt(value) || 1 : value
-          });
-          // Limpiar errores al cambiar
+          setFormData(prev => ({ ...prev, [name]: value }));
           if (errors[name]) {
-            setErrors({ ...errors, [name]: '' });
+            setErrors(prev => ({ ...prev, [name]: '' }));
           }
         };
 
-        const validateForm = () => {
+        const handleImageChange = (e) => {
+          const file = e.target.files[0];
+          if (file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+              setFormData(prev => ({ ...prev, image: e.target.result }));
+            };
+            reader.readAsDataURL(file);
+          }
+        };
+
+        const validate = () => {
           const newErrors = {};
           if (!formData.name.trim()) newErrors.name = 'El nombre es requerido';
-          if (!formData.category) newErrors.category = 'La categoría es requerida';
-          if (!formData.quantity || formData.quantity < 1) newErrors.quantity = 'La cantidad debe ser mayor a 0';
-          if (!formData.expirationDate) newErrors.expirationDate = 'La fecha de vencimiento es requerida';
-          
+          if (!formData.expiryDate) newErrors.expiryDate = 'La fecha de vencimiento es requerida';
           setErrors(newErrors);
           return Object.keys(newErrors).length === 0;
         };
 
         const handleSubmit = (e) => {
           e.preventDefault();
-          if (validateForm()) {
-            saveProduct(formData);
+          if (validate()) {
+            onSave({ ...formData, categoryType: activeTab });
           }
-        };
-
-        // Manejar la foto
-        const handlePhotoChange = (e) => {
-          const file = e.target.files[0];
-          if (!file) return;
-          
-          if (file.size > 5 * 1024 * 1024) {
-            showNotification('Archivo muy grande', 'La imagen no debe exceder 5MB');
-            return;
-          }
-          
-          const reader = new FileReader();
-          reader.onload = (ev) => {
-            setFormData(f => ({ ...f, photo: ev.target.result }));
-          };
-          reader.readAsDataURL(file);
         };
 
         return (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-20 modal fade-in">
-            <div
-              className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-md mx-4 slide-in flex flex-col"
-              style={{
-                maxHeight: '95vh',
-                minHeight: '0',
-              }}
-            >
-              <div className="overflow-y-auto flex-1" style={{ minHeight: 0, padding: '1.5rem' }}>
-                <h2 className="text-2xl font-bold mb-4 text-gray-800 dark:text-white flex items-center">
-                  <i className={`fas ${currentProduct ? 'fa-edit' : 'fa-plus'} mr-2`}></i>
-                  {currentProduct ? 'Editar producto' : 'Agregar nuevo producto'}
-                </h2>
-                
-                <form onSubmit={handleSubmit}>
-                  <div className="mb-4">
-                    <label className="block text-gray-700 dark:text-gray-300 mb-2">Nombre *</label>
-                    <input
-                      type="text"
-                      name="name"
-                      value={formData.name}
-                      onChange={handleChange}
-                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white ${errors.name ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'}`}
-                      placeholder="Nombre del producto"
-                    />
-                    {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
-                  </div>
-                  
-                  <div className="mb-4">
-                    <label className="block text-gray-700 dark:text-gray-300 mb-2">Categoría *</label>
-                    <select
-                      name="category"
-                      value={formData.category}
-                      onChange={handleChange}
-                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white ${errors.category ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'}`}
-                    >
-                      {categories.map(category => (
-                        <option key={category} value={category}>{category}</option>
-                      ))}
-                    </select>
-                    {errors.category && <p className="text-red-500 text-sm mt-1">{errors.category}</p>}
-                  </div>
-                  
-                  <div className="mb-4">
-                    <label className="block text-gray-700 dark:text-gray-300 mb-2">Cantidad *</label>
-                    <input
-                      type="number"
-                      name="quantity"
-                      value={formData.quantity}
-                      onChange={handleChange}
-                      min="1"
-                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white ${errors.quantity ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'}`}
-                      placeholder="Cantidad"
-                    />
-                    {errors.quantity && <p className="text-red-500 text-sm mt-1">{errors.quantity}</p>}
-                  </div>
-                  
-                  <div className="mb-4">
-                    <label className="block text-gray-700 dark:text-gray-300 mb-2">Fecha de vencimiento *</label>
-                    <input
-                      type="date"
-                      name="expirationDate"
-                      value={formData.expirationDate}
-                      onChange={handleChange}
-                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white ${errors.expirationDate ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'}`}
-                    />
-                    {errors.expirationDate && <p className="text-red-500 text-sm mt-1">{errors.expirationDate}</p>}
-                  </div>
-                  
-                  <div className="mb-4">
-                    <label className="block text-gray-700 dark:text-gray-300 mb-2">Código de barras (opcional)</label>
-                    <div className="flex">
-                      <input
-                        type="text"
-                        name="barcode"
-                        value={formData.barcode}
-                        onChange={handleChange}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-l-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                        placeholder="Código de barras"
-                      />
-                      <button
-                        type="button"
-                        className="bg-gray-200 dark:bg-gray-600 px-4 rounded-r-md hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors"
-                        title="Escanear código de barras"
-                        onClick={() => setScanning(true)}
-                      >
-                        <i className="fas fa-barcode"></i>
-                      </button>
-                    </div>
-                    {scanning && (
-                      <div id="barcode-scanner" className="mt-2 w-full h-48 bg-black rounded"></div>
-                    )}
-                  </div>
-                  
-                  <div className="mb-4">
-                    <label className="block text-gray-700 dark:text-gray-300 mb-2">Foto del producto</label>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      capture="environment"
-                      onChange={handlePhotoChange}
-                      className="block w-full text-gray-900 dark:text-gray-200"
-                    />
-                    <small className="text-gray-500 dark:text-gray-400 block mt-1">
-                      Puede tomar una foto con la cámara o seleccionar una imagen de su dispositivo.
-                    </small>
-                    {formData.photo && (
-                      <div className="mt-2">
-                        <img
-                          src={formData.photo}
-                          alt="Foto del producto"
-                          className="rounded max-h-40 mx-auto product-image"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setFormData(f => ({ ...f, photo: '' }))}
-                          className="mt-2 text-red-500 hover:text-red-700 text-sm"
-                        >
-                          <i className="fas fa-trash mr-1"></i> Eliminar foto
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                  
-                  <div className="flex justify-end space-x-2 mt-6">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowModal(false);
-                        setCurrentProduct(null);
-                      }}
-                      className="px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-white rounded-md hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors"
-                    >
-                      Cancelar
-                    </button>
-                    <button
-                      type="submit"
-                      className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors flex items-center"
-                    >
-                      <i className={`fas ${currentProduct ? 'fa-save' : 'fa-plus'} mr-2`}></i>
-                      {currentProduct ? 'Actualizar' : 'Agregar'}
-                    </button>
-                  </div>
-                </form>
-              </div>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">Nombre *</label>
+              <input
+                type="text"
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700"
+                placeholder="Nombre del producto"
+              />
+              {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
             </div>
-          </div>
-        );
-      };
 
-      // Componente modal de configuración de alertas
-      const SettingsModal = () => {
-        const [alertSettings, setAlertSettings] = React.useState({...categoryAlerts});
-        const [activeCategoryGroup, setActiveCategoryGroup] = React.useState('farmacia');
-
-        const handleChange = (category, days) => {
-          const value = parseInt(days) || 0;
-          if (value >= 0 && value <= 90) {
-            setAlertSettings({
-              ...alertSettings,
-              [category]: value
-            });
-          }
-        };
-
-        const handleSubmit = (e) => {
-          e.preventDefault();
-          setCategoryAlerts(alertSettings);
-          setShowSettings(false);
-          showNotification('Configuración guardada', 'Las alertas han sido actualizadas');
-        };
-
-        const resetToDefaults = () => {
-          if (window.confirm('¿Está seguro de restablecer todas las alertas a sus valores predeterminados?')) {
-            setAlertSettings({
-              '11076 10A_TRACTO ALIMENTARIO Y METABOLISMO': 90,
-              '11077 10B_SANGRE Y APARATO HEMATOPOYETICO': 90,
-              '11078 10C_SISTEMA CARDIOVASCULAR': 90,
-              '11079 10D_DERMATOLOGICOS': 90,
-              '11296 10E ESPECIALIZADOS': 90,
-              '11080 10G_SIST GENITOURINARIO Y HORMONAS SEX': 90,
-              '11081 10H_PREP HORM SIST (EXCLUY HORMONAS SEX)': 90,
-              '11082 10J_ANTIINFECCIOSOS SISTEMICOS GENERALES': 90,
-              '11083 10K_SOLUCIONES HOSPITALARIAS': 90,
-              '11084 10L_ANTINEOPLASICOS Y AGTS INMUNOMODUL': 90,
-              '11085 10M_SISTEMA MUSCULO ESQUELETICO': 90,
-              '11086 10N_SISTEMA NERVIOSO CENTRAL': 90,
-              '11087 10P_PARASITOLOGIA': 90,
-              '11088 10R_SISTEMA RESPIRATORIO': 90,
-              '11089 10S_ORGANOS DE LOS SENTIDOS': 90,
-              '11090 10T AGENTES DE DIAGNOSTICO': 90,
-              '11091 10V_VARIOS': 90,
-              '11092 10W_PRODUCTOS NATURALES': 90,
-              '11297 10Y REFRIGERADOS': 90,
-              '11298 10Z CONTROLADOS': 90,
-              '11094 11A_RESPIRATORIOS OTC': 90,
-              '11095 11B_ANALGESICOS OTC': 90,
-              '11096 11C_GASTROINTEST OTC (TRACTO ALIMENT)': 90,
-              '11097 11D_SUEROS ORALES (SUSTIT ELECTROL ORAL)': 90,
-              '11098 11E_GINECOLOGICOS OTC Y PROD SEX': 90,
-              '11099 11F_DERMATOLOGICOS OTC': 90,
-              '11100 11G_OFTALMOLOGICOS Y OTICOS OTC': 90,
-              '11101 11H_VITAMINAS Y MINERALES OTC': 90,
-              '11102 11I_NUTRICIONALES OTC': 90,
-              '11104 11K_MATERIAL Y ACCESORIOS PARA CURACION': 90,
-              '11106 11M ORTOPEDICOS ACC TERAP Y ME': 90,
-              '11107 11N_PRUEBAS Y TEST DE DIAGNOSTICO': 90,
-              '11109 11P_CUIDADO DE LOS PIES': 90,
-              '11110 11R_PRODUCTOS NATURALES': 90,
-              '11111 11S_PRODUCTOS HOMEOPATICOS': 90,
-              '11112 11T_OTC VARIOS': 90,
-              '11017 ABARROTES GOURMET': 40,
-              '11019 ACEITES COMESTIBLES': 90,
-              '11010 ADEREZOS': 40,
-              '11033 AGUA Y HIELO': 90,
-              '11228 ALIMENTOS REFRIGERADOS': 10,
-              '11022 AZUCAR Y SUSTITUTOS': 90,
-              '11018 BARRAS DE CEREAL': 40,
-              '11249 BEBES ALIMENTOS': 30,
-              '11307 BEBES ALIMENTOS': 30,
-              '11348 BEBES ALIMENTOS.': 30,
-              '11035 BEBIDAS': 90,
-              '11367 BEBIDAS': 90,
-              '11032 BOTANAS': 30,
-              '11023 CAFES': 90,
-              '11013 CEREALES': 40,
-              '11003 Cereales Galletas Y Panes': 40,
-              '11055 CERVEZA': 40,
-              '11005 CHILES ENVASADOS': 40,
-              '11313 CHOCOLATES.': 45,
-              '11209 CHORIZOS Y LONGANIZAS': 30,
-              '11231 COMIDAS CONGELADAS': 30,
-              '11009 COMIDAS ENVASADAS Y ENTREMESES': 40,
-              '11034 CONCENTRADOS PARA BEBIDAS': 90,
-              '11008 CONSOMES Y CALDOS': 40,
-              '11224 CREMAS Y JOCOQUES': 10,
-              '11021 CREMAS, SOPAS, PASTAS Y PURES': 90,
-              '11208 DELI GOURMET': 15,
-              '11310 DESPENSAS.': 90,
-              '11031 DULCERIA': 45,
-              '11311 DULCERIA.': 45,
-              '11001 ESPECIAS Y CONDIMENTOS': 40,
-              '11004 FRIJOLES Y PLATILLOS MEXICANOS ENVASADOS': 40,
-              '11014 GALLETAS': 40,
-              '11225 GELATINAS Y POSTRES': 10,
-              '11020 GRANOS Y SEMILLAS': 90,
-              '11027 HARINAS Y COMPLEMENTOS': 90,
-              '11230 HELADOS Y POSTRES': 30,
-              '11211 JAMONES': 30,
-              '11029 JUGOS Y NECTARES': 90,
-              '11369 JUGOS Y NECTARES': 90,
-              '11377 LECHES': 90,
-              '11024 LECHES': 90,
-              '11229 LECHES ULTRAPASTEURIZADAS': 30,
-              '11222 LECHES Y BEBIDAS REFRIGERADAS': 6,
-              '11226 MANTEQUILLAS Y MARGARINAS': 30,
-              '11037 MASCOTAS': 90,
-              '11315 MASCOTAS.': 90,
-              '91 MEDICAMENTOS OTC': 90,
-              '100 MEDICINA ETICA': 90,
-              '11016 MERMELADAS, JALEAS, MIELES Y CAJETAS': 40,
-              '11012 MOLES Y ADOBOS': 40,
-              '11011 PESCADOS ENVASADOS': 40,
-              '11221 PESCADOS Y MARISCOS': 40,
-              '11015 PINA REBANADAS': 40,
-              '11114 PLAN DE FIDELIDAD MG': 30,
-              '11028 POSTRES': 40,
-              '11223 QUESOS': 15,
-              '11030 REFRESCOS': 30,
-              '11026 SABORIZANTES PARA LECHE Y CAFE': 90,
-              '11212 SALCHICHAS': 20,
-              '11007 SALSAS ENVASADAS': 40,
-              '11113 SIN CATEGORIA  FARM': 90,
-              '11241 SIN CATEGORIA (PRO ESP)': 30,
-              '11201 TARJETAS Y SORTEOS DE AYUDA': 30,
-              '11025 TES DE INFUSION': 40,
-              '11210 TOCINOS': 30,
-              '11002 TORTILLAS Y TOSTADAS EMPACADAS': 30,
-              '11006 VERDURAS Y VEGETALES ENVASADOS': 40,
-              '11227 YOGHURT': 20,
-            });
-          }
-        };
-
-        const filteredCategories = categories.filter(category => {
-          if (activeCategoryGroup === 'farmacia') {
-            return category.startsWith('110') || category.startsWith('91') || category.startsWith('100');
-          } else if (activeCategoryGroup === 'alimentos') {
-            return category.includes('ALIMENTOS') || category.includes('BEBIDAS') || 
-                   category.includes('REFRIGERADOS') || category.includes('CONGELADAS') ||
-                   category.includes('DESAYUNO') || category.includes('SNACKS');
-          } else if (activeCategoryGroup === 'otros') {
-            return !category.startsWith('110') && !category.startsWith('91') && 
-                   !category.startsWith('100') && !category.includes('ALIMENTOS') && 
-                   !category.includes('BEBIDAS') && !category.includes('REFRIGERADOS');
-          }
-          return true;
-        });
-
-        return (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-20 modal fade-in">
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-2xl mx-4 slide-in">
-              <h2 className="text-2xl font-bold mb-4 text-gray-800 dark:text-white flex items-center">
-                <i className="fas fa-cog mr-2"></i>
-                Configuración de alertas
-              </h2>
-              
-              <div className="mb-4 border-b border-gray-200 dark:border-gray-700">
-                <ul className="flex flex-wrap -mb-px">
-                  <li className="mr-2">
-                    <button
-                      className={`inline-block p-4 rounded-t-lg ${activeCategoryGroup === 'farmacia' ? 'text-blue-600 border-b-2 border-blue-600 dark:text-blue-500 dark:border-blue-500' : 'hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-300'}`}
-                      onClick={() => setActiveCategoryGroup('farmacia')}
-                    >
-                      Farmacia
-                    </button>
-                  </li>
-                  <li className="mr-2">
-                    <button
-                      className={`inline-block p-4 rounded-t-lg ${activeCategoryGroup === 'alimentos' ? 'text-blue-600 border-b-2 border-blue-600 dark:text-blue-500 dark:border-blue-500' : 'hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-300'}`}
-                      onClick={() => setActiveCategoryGroup('alimentos')}
-                    >
-                      Alimentos
-                    </button>
-                  </li>
-                  <li className="mr-2">
-                    <button
-                      className={`inline-block p-4 rounded-t-lg ${activeCategoryGroup === 'otros' ? 'text-blue-600 border-b-2 border-blue-600 dark:text-blue-500 dark:border-blue-500' : 'hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-300'}`}
-                      onClick={() => setActiveCategoryGroup('otros')}
-                    >
-                      Otros
-                    </button>
-                  </li>
-                </ul>
-              </div>
-              
-              <form onSubmit={handleSubmit}>
-                <p className="text-gray-600 dark:text-gray-400 mb-4">
-                  Configure cuántos días antes desea recibir alertas para cada categoría de productos
-                </p>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 max-h-96 overflow-y-auto pr-2">
-                  {filteredCategories.map(category => (
-                    <div key={category} className="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                      <div className="flex-1 min-w-0">
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
-                          {category}
-                        </label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <input
-                          type="number"
-                          value={alertSettings[category]}
-                          onChange={(e) => handleChange(category, e.target.value)}
-                          min="0"
-                          max="90"
-                          className="w-20 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-center"
-                        />
-                        <span className="text-sm text-gray-500 dark:text-gray-400">días</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                
-                <div className="flex justify-between items-center pt-4 border-t border-gray-200 dark:border-gray-700">
-                  <button
-                    type="button"
-                    onClick={resetToDefaults}
-                    className="px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-white rounded-md hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors flex items-center"
-                  >
-                    <i className="fas fa-undo mr-2"></i>
-                    Restablecer
-                  </button>
-                  <div className="flex space-x-2">
-                    <button
-                      type="button"
-                      onClick={() => setShowSettings(false)}
-                      className="px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-white rounded-md hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors"
-                    >
-                      Cancelar
-                    </button>
-                    <button
-                      type="submit"
-                      className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors flex items-center"
-                    >
-                      <i className="fas fa-save mr-2"></i>
-                      Guardar
-                    </button>
-                  </div>
-                </div>
-              </form>
+            <div>
+              <label className="block text-sm font-medium mb-1">Categoría</label>
+              <select
+                name="category"
+                value={formData.category}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700"
+              >
+                {categories[activeTab].map(cat => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
             </div>
-          </div>
-        );
-      };
 
-      // Componente para cada tarjeta de producto
-      const ProductCard = ({ product }) => {
-        const status = getProductStatus(product);
-        const daysRemaining = getDaysRemaining(product.expirationDate);
-        const stage = getProductStage(product);
-        
-        let statusClass = '';
-        let statusLabel = '';
-        let statusColor = '';
-        
-        switch(status) {
-          case 'fresh':
-            statusClass = 'status-fresh';
-            statusLabel = 'En buen estado';
-            statusColor = 'text-green-700 dark:text-green-400';
-            break;
-          case 'warning':
-            statusClass = 'status-warning';
-            statusLabel = 'Por vencer';
-            statusColor = 'text-yellow-700 dark:text-yellow-400';
-            break;
-          case 'expired':
-            statusClass = 'status-expired';
-            statusLabel = 'Vencido';
-            statusColor = 'text-red-700 dark:text-red-400';
-            break;
-          default:
-            statusClass = 'status-fresh';
-            statusLabel = 'En buen estado';
-            statusColor = 'text-green-700 dark:text-green-400';
-        }
-        
-        if (stage === 'PRÓXIMO A MERMA') {
-          statusClass = 'status-approaching';
-          statusLabel = 'Próximo a mermar';
-          statusColor = 'text-blue-700 dark:text-blue-400';
-        }
-        
-        return (
-          <div className={`card bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden border-l-4 ${statusClass} mb-4 transition-all duration-300`}>
-            <div className="flex flex-col md:flex-row items-center p-4">
-              {/* Imagen a la izquierda */}
-              {product.photo ? (
-                <img
-                  src={product.photo}
-                  alt={product.name}
-                  className="rounded-lg max-h-32 max-w-[8rem] object-cover md:mr-4 mb-4 md:mb-0 border border-gray-200 dark:border-gray-700 flex-shrink-0 product-image"
-                  style={{ width: '8rem', height: '8rem' }}
+            <div>
+              <label className="block text-sm font-medium mb-1">Cantidad</label>
+              <input
+                type="number"
+                name="quantity"
+                value={formData.quantity}
+                onChange={handleChange}
+                min="1"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Fecha de vencimiento *</label>
+              <input
+                type="date"
+                name="expiryDate"
+                value={formData.expiryDate}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700"
+              />
+              {errors.expiryDate && <p className="text-red-500 text-xs mt-1">{errors.expiryDate}</p>}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Código de barras</label>
+              <div className="flex">
+                <input
+                  type="text"
+                  name="barcode"
+                  value={formData.barcode}
+                  onChange={handleChange}
+                  className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-l-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700"
+                  placeholder="Código de barras"
                 />
-              ) : (
-                <div className="flex items-center justify-center bg-gray-100 dark:bg-gray-700 rounded-lg max-h-32 max-w-[8rem] md:mr-4 mb-4 md:mb-0 flex-shrink-0" style={{ width: '8rem', height: '8rem' }}>
-                  <i className="fas fa-box-open text-4xl text-gray-400"></i>
+                <button
+                  type="button"
+                  onClick={startScanner}
+                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-r-md transition-colors duration-200"
+                >
+                  <i className="fas fa-barcode"></i>
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Foto</label>
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleImageChange}
+                accept="image/*"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700"
+              />
+              {formData.image && (
+                <div className="mt-2">
+                  <img src={formData.image} alt="Preview" className="h-20 object-cover rounded" />
                 </div>
               )}
-              
-              {/* Información a la derecha */}
-              <div className="flex-1 min-w-0">
-                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between">
-                  <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{product.name}</h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 truncate">{product.category}</p>
-                    
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
-                        <i className="fas fa-box mr-1"></i>
-                        {product.quantity} unidad{product.quantity !== 1 ? 'es' : ''}
-                      </span>
-                      
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${status === 'fresh' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' : status === 'warning' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'}`}>
-                        <i className={`fas ${status === 'fresh' ? 'fa-check' : status === 'warning' ? 'fa-exclamation-triangle' : 'fa-times' } mr-1`}></i>
-                        {statusLabel}
-                      </span>
-                      
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300">
-                        <i className="fas fa-flag mr-1"></i>
-                        {stage}
-                      </span>
-                    </div>
-                  </div>
-                  
-                  <div className="flex space-x-2 mt-3 sm:mt-0">
-                    <button 
-                      onClick={() => {
-                        setCurrentProduct(product);
-                        setShowModal(true);
-                      }} 
-                      className="p-2 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900 rounded-full transition-colors"
-                      title="Editar producto"
+            </div>
+
+            <div className="flex space-x-3 pt-4">
+              <button
+                type="submit"
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md transition-colors duration-200"
+              >
+                {initialData ? 'Actualizar' : 'Agregar'}
+              </button>
+              <button
+                type="button"
+                onClick={onCancel}
+                className="flex-1 bg-gray-300 hover:bg-gray-400 dark:bg-gray-600 dark:hover:bg-gray-500 text-gray-800 dark:text-white py-2 px-4 rounded-md transition-colors duration-200"
+              >
+                Cancelar
+              </button>
+            </div>
+          </form>
+        );
+      };
+
+      if (isLoading) {
+        return (
+          <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-gray-600 dark:text-gray-400">Cargando datos...</p>
+            </div>
+          </div>
+        );
+      }
+
+      return (
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
+          {/* Header */}
+          <header className="bg-white dark:bg-gray-800 shadow-sm">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="flex justify-between items-center py-4">
+                <div className="flex items-center">
+                  <i className="fas fa-calendar-check text-blue-600 dark:text-blue-400 text-2xl mr-2"></i>
+                  <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Control de Caducidades</h1>
+                </div>
+                <div className="flex items-center space-x-4">
+                  <button
+                    onClick={() => setDarkMode(!darkMode)}
+                    className="p-2 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors duration-200"
+                  >
+                    {darkMode ? <i className="fas fa-sun"></i> : <i className="fas fa-moon"></i>}
+                  </button>
+                  <div className="relative">
+                    <button
+                      onClick={() => setExportModal(true)}
+                      className="p-2 rounded-full bg-blue-600 hover:bg-blue-700 text-white transition-colors duration-200"
                     >
-                      <i className="fas fa-edit"></i>
-                    </button>
-                    <button 
-                      onClick={() => deleteProduct(product.id)}
-                      className="p-2 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900 rounded-full transition-colors"
-                      title="Eliminar producto"
-                    >
-                      <i className="fas fa-trash"></i>
+                      <i className="fas fa-cog"></i>
                     </button>
                   </div>
                 </div>
-                
-                <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm text-gray-700 dark:text-gray-300">
-                  <div className="flex items-center">
-                    <i className="far fa-calendar-alt mr-2 text-gray-500"></i>
-                    <div>
-                      <div className="font-medium">Vence</div>
-                      <div>{new Date(product.expirationDate).toLocaleDateString()}</div>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center">
-                    <i className={`fas fa-hourglass-half mr-2 ${statusColor}`}></i>
-                    <div>
-                      <div className="font-medium">Días restantes</div>
-                      <div className={statusColor}>
-                        {daysRemaining > 0
-                          ? `${daysRemaining} día${daysRemaining !== 1 ? 's' : ''}`
-                          : daysRemaining === 0
-                          ? '¡Vence hoy!'
-                          : 'Vencido'}
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {product.barcode && (
-                    <div className="flex items-center">
-                      <i className="fas fa-barcode mr-2 text-gray-500"></i>
-                      <div>
-                        <div className="font-medium">Código</div>
-                        <div>{product.barcode}</div>
-                      </div>
+              </div>
+            </div>
+          </header>
+
+          <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            {/* Tabs */}
+            <div className="mb-6 border-b border-gray-200 dark:border-gray-700">
+              <nav className="flex space-x-8">
+                {Object.keys(categories).map(tab => (
+                  <button
+                    key={tab}
+                    onClick={() => setActiveTab(tab)}
+                    className={`py-2 px-1 border-b-2 font-medium text-sm capitalize transition-colors duration-200 ${
+                      activeTab === tab
+                        ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+                    }`}
+                  >
+                    {tab}
+                  </button>
+                ))}
+              </nav>
+            </div>
+
+            {/* Filtros y búsqueda */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 mb-6">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Buscar</label>
+                  <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Buscar productos..."
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Categoría</label>
+                  <select
+                    value={filterCategory}
+                    onChange={(e) => setFilterCategory(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700"
+                  >
+                    <option value="">Todas las categorías</option>
+                    {categories[activeTab].map(cat => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Estado</label>
+                  <select
+                    value={filterStatus}
+                    onChange={(e) => setFilterStatus(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700"
+                  >
+                    <option value="todos">Todos</option>
+                    <option value="buenos">Buenos</option>
+                    <option value="porVencer">Por vencer</option>
+                    <option value="porMermar">Próximos a mermar</option>
+                    <option value="vencidos">Vencidos</option>
+                  </select>
+                </div>
+                <div className="flex items-end">
+                  <button
+                    onClick={() => setShowModal(true)}
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md transition-colors duration-200 flex items-center justify-center"
+                  >
+                    <i className="fas fa-plus mr-2"></i> Agregar
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Estadísticas */}
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 text-center">
+                <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{stats.total}</div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">Total</div>
+              </div>
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 text-center">
+                <div className="text-2xl font-bold text-green-600 dark:text-green-400">{stats.bueno}</div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">Buenos</div>
+              </div>
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 text-center">
+                <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{stats.porVencer}</div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">Por vencer</div>
+              </div>
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 text-center">
+                <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{stats.porMermar}</div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">Por mermar</div>
+              </div>
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 text-center">
+                <div className="text-2xl font-bold text-red-600 dark:text-red-400">{stats.vencido}</div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">Vencidos</div>
+              </div>
+            </div>
+
+            {/* Lista de productos */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow min-h-96">
+              {filteredProducts.length === 0 ? (
+                <div className="p-8 text-center text-gray-500 dark:text-gray-400">
+                  <i className="fas fa-box-open text-4xl mb-2 opacity-50"></i>
+                  <p>No hay productos que coincidan con los filtros.</p>
+                  <button
+                    onClick={() => setShowModal(true)}
+                    className="mt-4 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                  >
+                    Agregar un producto
+                  </button>
+                </div>
+              ) : (
+                <div className="p-4 max-h-96 overflow-y-auto scrollbar-custom">
+                  {filteredProducts.map(product => (
+                    <ProductCard key={product.id} product={product} />
+                  ))}
+                </div>
+              )}
+            </div>
+          </main>
+
+          {/* Botón flotante */}
+          <button
+            onClick={() => setShowModal(true)}
+            className="fixed bottom-6 right-6 bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-full shadow-lg transition-colors duration-200 z-40"
+          >
+            <i className="fas fa-plus text-xl"></i>
+          </button>
+
+          {/* Modal de producto */}
+          {showModal && (
+            <Modal onClose={() => { setShowModal(false); setEditingProduct(null); }}>
+              <ProductForm
+                initialData={editingProduct}
+                onSave={handleSaveProduct}
+                onCancel={() => { setShowModal(false); setEditingProduct(null); }}
+              />
+            </Modal>
+          )}
+
+          {/* Modal de escáner */}
+          {showScanner && (
+            <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center p-4 z-50">
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full">
+                <div className="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700">
+                  <h2 className="text-xl font-semibold">Escanear Código de Barras</h2>
+                  <button onClick={stopScanner} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                    <i className="fas fa-times"></i>
+                  </button>
+                </div>
+                <div className="p-4">
+                  <video ref={videoRef} className="w-full rounded" autoPlay playsInline></video>
+                  {barcodeResult && (
+                    <div className="mt-4 p-3 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded">
+                      Código detectado: <strong>{barcodeResult}</strong>
                     </div>
                   )}
                 </div>
               </div>
             </div>
-          </div>
-        );
-      };
+          )}
 
-      return (
-        <div className="container mx-auto px-4 py-6 max-w-7xl">
-          {/* Notificación */}
-          {notification && (
-            <div className="notification bg-white dark:bg-gray-800 text-gray-800 dark:text-white shadow-lg rounded-lg p-4 mb-6 animate-slide-in-notification">
-              <div className="flex items-start">
-                <div className="flex-shrink-0">
-                  <i className="fas fa-bell text-blue-500 mt-0.5"></i>
-                </div>
-                <div className="ml-3 w-0 flex-1">
-                  <p className="text-sm font-medium">{notification.title}</p>
-                  <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{notification.message}</p>
-                </div>
-                <div className="ml-4 flex-shrink-0 flex">
-                  <button
-                    onClick={() => setNotification(null)}
-                    className="inline-flex text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
-                  >
+          {/* Modal de exportación/importación */}
+          {exportModal && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full">
+                <div className="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700">
+                  <h2 className="text-xl font-semibold">Configuración</h2>
+                  <button onClick={() => setExportModal(false)} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
                     <i className="fas fa-times"></i>
                   </button>
                 </div>
-              </div>
-            </div>
-          )}
-          
-          {/* Encabezado */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 space-y-4 sm:space-y-0">
-            <div>
-              <h1 className="text-2xl md:text-3xl font-bold text-gray-800 dark:text-white flex items-center">
-                <i className="fas fa-boxes mr-3 text-blue-600"></i>
-                Control de Caducidades
-              </h1>
-              <p className="text-gray-600 dark:text-gray-400 mt-1">Gestión de productos por vencer</p>
-            </div>
-            
-            <div className="flex items-center space-x-4">
-              <button 
-                onClick={() => setShowSettings(true)}
-                className="p-2 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-                title="Configuración"
-              >
-                <i className="fas fa-cog text-xl"></i>
-              </button>
-              
-              {/* Toggle modo oscuro */}
-              <div className="flex items-center">
-                <span className="mr-2 text-gray-700 dark:text-gray-300">
-                  <i className={`fas ${darkMode ? 'fa-moon' : 'fa-sun'}`}></i>
-                </span>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    className="sr-only peer"
-                    checked={darkMode}
-                    onChange={() => setDarkMode(!darkMode)}
-                  />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
-                </label>
-              </div>
-            </div>
-          </div>
-          
-          {/* Estadísticas */}
-          {products.length > 0 && (
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-              <div className="stat-card bg-white dark:bg-gray-800 rounded-lg shadow p-4 transition-all duration-300 hover:shadow-md">
-                <div className="flex items-center">
-                  <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg mr-3">
-                    <i className="fas fa-boxes text-blue-600 dark:text-blue-300"></i>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total</p>
-                    <p className="text-2xl font-semibold text-gray-900 dark:text-white">{stats.total}</p>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="stat-card bg-white dark:bg-gray-800 rounded-lg shadow p-4 transition-all duration-300 hover:shadow-md">
-                <div className="flex items-center">
-                  <div className="p-2 bg-green-100 dark:bg-green-900 rounded-lg mr-3">
-                    <i className="fas fa-check-circle text-green-600 dark:text-green-300"></i>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400">En buen estado</p>
-                    <p className="text-2xl font-semibold text-gray-900 dark:text-white">{stats.fresh}</p>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="stat-card bg-white dark:bg-gray-800 rounded-lg shadow p-4 transition-all duration-300 hover:shadow-md">
-                <div className="flex items-center">
-                  <div className="p-2 bg-yellow-100 dark:bg-yellow-900 rounded-lg mr-3">
-                    <i className="fas fa-exclamation-triangle text-yellow-600 dark:text-yellow-300"></i>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Por vencer</p>
-                    <p className="text-2xl font-semibold text-gray-900 dark:text-white">{stats.warning}</p>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="stat-card bg-white dark:bg-gray-800 rounded-lg shadow p-4 transition-all duration-300 hover:shadow-md">
-                <div className="flex items-center">
-                  <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg mr-3">
-                    <i className="fas fa-clock text-blue-600 dark:text-blue-300"></i>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Próximos a mermar</p>
-                    <p className="text-2xl font-semibold text-gray-900 dark:text-white">{stats.approaching}</p>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="stat-card bg-white dark:bg-gray-800 rounded-lg shadow p-4 transition-all duration-300 hover:shadow-md">
-                <div className="flex items-center">
-                  <div className="p-2 bg-red-100 dark:bg-red-900 rounded-lg mr-3">
-                    <i className="fas fa-times-circle text-red-600 dark:text-red-300"></i>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Vencidos</p>
-                    <p className="text-2xl font-semibold text-gray-900 dark:text-white">{stats.expired}</p>
+                <div className="p-4 space-y-4">
+                  <button
+                    onClick={handleExportCSV}
+                    className="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-md transition-colors duration-200 flex items-center justify-center"
+                  >
+                    <i className="fas fa-file-csv mr-2"></i> Exportar a CSV
+                  </button>
+                  <button
+                    onClick={() => setImportModal(true)}
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md transition-colors duration-200 flex items-center justify-center"
+                  >
+                    <i className="fas fa-file-import mr-2"></i> Importar desde CSV
+                  </button>
+                  <button
+                    onClick={generatePDF}
+                    className="w-full bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-md transition-colors duration-200 flex items-center justify-center"
+                  >
+                    <i className="fas fa-file-pdf mr-2"></i> Generar PDF
+                  </button>
+                  
+                  <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+                    <h3 className="font-medium mb-2">Alertas por categoría (días antes)</h3>
+                    {Object.keys(alerts).map(cat => (
+                      <div key={cat} className="flex items-center justify-between mb-2">
+                        <span className="capitalize">{cat}</span>
+                        <input
+                          type="number"
+                          value={alerts[cat]}
+                          onChange={(e) => setAlerts(prev => ({ ...prev, [cat]: parseInt(e.target.value) || 1 }))}
+                          className="w-20 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm"
+                          min="1"
+                        />
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>
             </div>
           )}
-          
-          {/* Barra de búsqueda y filtros */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 mb-6">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-              {/* Búsqueda */}
-              <div className="lg:col-span-1">
-                <div className="input-group">
-                  <i className="fas fa-search icon"></i>
+
+          {/* Modal de importación */}
+          {importModal && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full">
+                <div className="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700">
+                  <h2 className="text-xl font-semibold">Importar desde CSV</h2>
+                  <button onClick={() => setImportModal(false)} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                    <i className="fas fa-times"></i>
+                  </button>
+                </div>
+                <div className="p-4">
+                  <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
+                    El archivo CSV debe tener las columnas: Nombre, Categoría, Cantidad, Fecha, Código
+                  </p>
                   <input
-                    type="text"
-                    className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md leading-5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Buscar producto..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                    type="file"
+                    accept=".csv"
+                    onChange={handleImportCSV}
+                    ref={fileInputRef}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700"
                   />
-                </div>
-              </div>
-              
-              {/* Filtro de categoría */}
-              <div className="lg:col-span-1">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Categoría</label>
-                <select
-                  value={filterCategory}
-                  onChange={e => setFilterCategory(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                >
-                  <option value="">Todas las categorías</option>
-                  {categories.map(category => (
-                    <option key={category} value={category}>
-                      {category} ({categoryAlerts[category]} días)
-                    </option>
-                  ))}
-                </select>
-              </div>
-              
-              {/* Filtro de estado */}
-              <div className="lg:col-span-1">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Estado</label>
-                <div className="flex space-x-1">
                   <button
-                    onClick={() => setActiveTab('all')}
-                    className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                      activeTab === 'all' 
-                        ? 'bg-blue-600 text-white' 
-                        : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'
-                    }`}
+                    onClick={() => fileInputRef.current?.click()}
+                    className="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md transition-colors duration-200"
                   >
-                    <i className="fas fa-list mr-1"></i> Todos
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('fresh')}
-                    className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                      activeTab === 'fresh' 
-                        ? 'bg-green-600 text-white' 
-                        : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'
-                    }`}
-                  >
-                    <i className="fas fa-check mr-1"></i> Buenos
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('warning')}
-                    className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                      activeTab === 'warning' 
-                        ? 'bg-yellow-600 text-white' 
-                        : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'
-                    }`}
-                  >
-                    <i className="fas fa-exclamation-triangle mr-1"></i> Por vencer
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('approaching')}
-                    className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                      activeTab === 'approaching' 
-                        ? 'bg-blue-600 text-white' 
-                        : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'
-                    }`}
-                  >
-                    <i className="fas fa-clock mr-1"></i> Próximos a mermar
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('expired')}
-                    className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                      activeTab === 'expired' 
-                        ? 'bg-red-600 text-white' 
-                        : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'
-                    }`}
-                  >
-                    <i className="fas fa-times mr-1"></i> Vencidos
+                    Seleccionar archivo
                   </button>
                 </div>
               </div>
             </div>
-            
-            {/* Botones de exportación/importación */}
-            <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-              <button
-                onClick={exportToCSV}
-                className="btn px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center transition-colors"
-              >
-                <i className="fas fa-file-csv mr-2"></i>
-                Exportar CSV
-              </button>
-              <label className="btn px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center cursor-pointer transition-colors">
-                <i className="fas fa-file-upload mr-2"></i>
-                Importar CSV
-                <input
-                  type="file"
-                  accept=".csv"
-                  className="hidden"
-                  onChange={importFromCSV}
-                />
-              </label>
-              <button
-                onClick={exportToPDF}
-                className="btn px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 flex items-center transition-colors"
-              >
-                <i className="fas fa-file-pdf mr-2"></i>
-                Exportar PDF
-              </button>
+          )}
+
+          {/* Toast notifications */}
+          {toast && (
+            <div className={`fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg text-white flex items-center space-x-2 toast ${
+              toast.type === 'success' ? 'bg-green-600' :
+              toast.type === 'error' ? 'bg-red-600' :
+              'bg-blue-600'
+            }`}>
+              <i className={`fas ${toast.type === 'success' ? 'fa-check' : toast.type === 'error' ? 'fa-times' : 'fa-info'}`}></i>
+              <span>{toast.message}</span>
             </div>
-          </div>
-          
-          {/* Lista de productos */}
-          <div className="space-y-4">
-            {filteredProducts.length > 0 ? (
-              filteredProducts.map(product => (
-                <ProductCard key={product.id} product={product} />
-              ))
-            ) : (
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-8 text-center">
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-700 mb-4">
-                  <i className={`fas ${products.length === 0 ? 'fa-box-open' : 'fa-search'} text-3xl text-gray-400`}></i>
-                </div>
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white">
-                  {products.length === 0 ? 'No hay productos' : 'No se encontraron productos'}
-                </h3>
-                <p className="mt-2 text-gray-600 dark:text-gray-400">
-                  {products.length === 0 
-                    ? 'Comience agregando su primer producto.' 
-                    : 'No se encontraron productos con los filtros actuales.'}
-                </p>
-                {products.length === 0 && (
-                  <button
-                    onClick={() => {
-                      setCurrentProduct(null);
-                      setShowModal(true);
-                    }}
-                    className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors flex items-center mx-auto"
-                  >
-                    <i className="fas fa-plus mr-2"></i>
-                    Agregar producto
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-          
-          {/* Botón flotante para agregar */}
-          <button 
-            className="floating-button"
-            onClick={() => {
-              setCurrentProduct(null);
-              setShowModal(true);
-            }}
-            aria-label="Agregar producto"
-          >
-            <i className="fas fa-plus text-2xl"></i>
-          </button>
-          
-          {/* Modal de formulario */}
-          {showModal && <ProductFormModal />}
-          
-          {/* Modal de configuración */}
-          {showSettings && <SettingsModal />}
+          )}
         </div>
       );
     };
-    
-    // Renderizar la aplicación
+
+    // Renderizar la app
     const root = ReactDOM.createRoot(document.getElementById('root'));
     root.render(<App />);
   </script>
